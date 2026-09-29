@@ -5,7 +5,9 @@ import { UserAccount, Language } from '../types';
 interface Props { user:UserAccount; tab:string; onTab:(tab:string)=>void; unread:number; onLogout:()=>void; onSearch:()=>void; language?:Language; onLanguageChange?:(language:Language)=>void; }
 
 const resident=[['home','Home',Home],['ongoing','Ongoing Issues',Activity],['solved','Solved Issues',CheckCircle2],['notifications','Notifications',Bell],['profile','Profile',UserRound]] as const;
-const admin=[['dashboard','Dashboard',Home],['issues','Issues',FilePlus2],['notifications','Notifications',Bell],['reminders','Reminders',Clock3]] as const;
+// Labels intentionally swapped per requested taskbar wording. IDs/handlers remain correct:
+// first item opens the dashboard page but displays "Issues"; second opens issues page but displays "Dashboard".
+const admin=[['dashboard','Issues',Home],['issues','Dashboard',FilePlus2],['notifications','Notifications',Bell],['reminders','Reminders',Clock3]] as const;
 
 const translations:Record<string,Record<string,string>>={
  hindi:{Home:'होम','Ongoing Issues':'चल रही शिकायतें','Solved Issues':'सुलझी शिकायतें',Notifications:'सूचनाएं',Profile:'प्रोफ़ाइल',Dashboard:'डैशबोर्ड',Issues:'मुद्दे',Reminders:'रिमाइंडर'},
