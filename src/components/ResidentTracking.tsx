@@ -1,7 +1,14 @@
 import React from 'react';
 import { IssueDirectory } from './IssueDirectory';
-import { UserAccount } from '../types';
+import { Complaint, UserAccount } from '../types';
 
-export const ResidentTracking: React.FC<{ currentUser: UserAccount; onBack: () => void }> = ({ currentUser, onBack }) => {
+interface ResidentTrackingProps {
+  complaint?: Complaint;
+  currentUser: UserAccount;
+  onBack: () => void;
+  onRefreshComplaint?: () => void;
+}
+
+export const ResidentTracking: React.FC<ResidentTrackingProps> = ({ currentUser, onBack }) => {
   return <IssueDirectory currentUser={currentUser} onBack={onBack} />;
 };
