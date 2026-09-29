@@ -2,225 +2,215 @@
 ### Society Issue Intelligence & Resolution Center
 > **"Turn messy complaints into clear action."**
 
-[![Built for Housing Societies](https://img.shields.io/badge/Designed%20For-100%2B%20Flats-7C3AED.svg)](#)
-[![Stack](https://img.shields.io/badge/Stack-React%20%7C%20TypeScript%20%7C%20Tailwind%20%7C%20Node%20Express-0F172A.svg)](#)
-[![AI Engine](https://img.shields.io/badge/AI-Multilingual%20NLP%20%2B%20LLM%20Fallback-10B981.svg)](#)
-[![Judging](https://img.shields.io/badge/Competition%20Readiness-100%25-orange.svg)](#)
+SHIKAYAT BOX is a society complaint intelligence and resolution platform that converts resident complaints into structured, prioritized issues, detects related complaints, supports SLA workflows, and helps residents and administrators track resolution.
 
 ---
 
-## 1. Product Overview
+## Current Experience
 
-In high-density residential housing societies (~100 flats), managing maintenance and community complaints is fraught with friction:
-- **Chaotic Resident Submissions:** Messages arrive across WhatsApp and chat in **English**, **Hindi (Devanagari)**, and **Hinglish** with typos, emotional phrasing, and missing details.
-- **Buried Urgencies:** Serious emergencies (lift stoppages with elderly residents, sparking breaker panels, major water leaks) get buried under routine cleaning or parking gripes.
-- **Overwhelmed Volunteers:** The Managing Committee comprises volunteers who typically have only **5 minutes per day** to triage issues.
-- **Duplicate Explosion:** Multiple flats report the exact same failure (e.g., 7 flats complaining about water cuts in B Wing), creating duplicate tickets and fragmented tracking.
+### Resident navigation
+The resident taskbar is intentionally minimal:
 
-**SHIKAYAT BOX** transforms chaotic resident messages into prioritized, clustered Master Issues, assigns responsible owners, automates resident communication, enforces SLAs, and requires verified resolution evidence with resident sign-off.
+- **Home**
+- **Ongoing Issues**
+- **Solved Issues**
+- **Notifications**
+- **Profile**
 
-```mermaid
-flowchart TD
-    A["Messy Resident Message (English / Hindi / Hinglish)"] --> B["AI Triage & Multilingual NLP"]
-    B --> C["Category + Urgency + Impact Breakdown"]
-    C --> D{"Duplicate / Similarity Detected?"}
-    D -- Yes --> E["Cluster into Master Issue (WC-M024)"]
-    D -- No --> F["Single Case Ticket"]
-    E --> G["2-Minute Committee Command Center"]
-    F --> G
-    G --> H["Assignment + SLA Countdown + Escalation"]
-    H --> I["AI Resident Response Composer"]
-    I --> J["Ground Repair & Before/After Evidence"]
-    J --> K["AI Evidence Relevance Scoring (91%)"]
-    K --> L["Resident Confirmation: Resolved or Reopened"]
-```
+**Report an Issue** and **My Issues** are accessed from Home feature boxes rather than the taskbar.
 
----
+### Resident Home
+The Home screen provides clickable feature boxes for:
 
-## 2. Competition Demonstration Guide (2-Minute Judge Walkthrough)
+- **Report an Issue**
+- **My Issues**
+- **App Manual** — visual, icon-led instructions for using SHIKAYAT BOX
+- **Society Notices**
+- **Society Chat**
 
-To verify the end-to-end flow described in **Section 68 of the Product Specification**, follow these steps:
+The resident UI uses a **tomato-red / pink / white** visual direction, rounded feature boxes, clear Lucide icons, large touch targets and responsive mobile layouts.
 
-1. **Step 1 — Resident Submission:**
-   - Go to **Report Issue**.
-   - Click the 1-click test prompt: *"Lift B subah se band hai aur 7th floor pe elderly log hain."* (or speak into the 🎤 microphone).
-   - Click **Analyze with AI**.
-2. **Step 2 — AI Triage & Explanation:**
-   - Observe the step-by-step sequence: `Understanding message` → `Detecting language (Hinglish)` → `Assessing urgency (HIGH)` → `Estimating impact (~18 flats)`.
-   - Open **Why HIGH?** to inspect the user-facing decision factors (Essential building service, elderly residents on upper floor, medical context).
-3. **Step 3 — Smart Confirmation:**
-   - Click **Looks right — Submit**. Confetti triggers and ticket `WC-024` is registered.
-4. **Step 4 — Society Command Center:**
-   - Switch role to **Committee (Rohan Sharma)** from the top-right persona selector.
-   - Go to **Command Center**.
-   - Notice the **🔴 Attention Required** emergency banner with live remaining SLA countdown timer (`01:42:17 remaining`).
-5. **Step 5 — Duplicate Clustering:**
-   - Observe the banner: *"Possible existing issue detected: Water Supply — B Wing (7 related complaints, 23 affected flats)"*.
-   - Click **Merge into master issue** to open **Master Issue WC-M024** and inspect the unified ticket.
-6. **Step 6 — ⚡ 2-Minute Volunteer Triage:**
-   - Click **⚡ 2-Min Triage** in the navbar to open the rapid-action deck for busy volunteers.
-7. **Step 7 — Issue Intelligence & Response:**
-   - Click any case to open the 3-panel deep dive.
-   - Use the **AI Response Composer** to draft or translate an update in Hindi or Hinglish, then click **Send to Resident**.
-8. **Step 8 — Verified Resolution Evidence:**
-   - Click **Resolve & Upload Evidence**.
-   - View the side-by-side **Before vs After** photos with **AI Evidence Relevance (91%)**. Click **Mark Verified**.
-9. **Step 9 — Resident Verification & Reopen Workflow:**
-   - Switch persona back to **Resident**.
-   - Navigate to **Track Resolution Status**.
-   - Test clicking **👎 Still happening**: Notice the ticket automatically reopens, priority escalates to **CRITICAL**, the committee is re-notified, and the audit timeline records the feedback!
+### Resident issue views
+**Ongoing Issues** and **Solved Issues** use grouped issue views. A resident can select an issue to see how many residents reported the same issue and available wing/flat information, instead of navigating a cluttered grid of complaint cards.
+
+### Multilingual support
+The interface is designed to support:
+
+- English
+- Hindi
+- Marathi
+- Telugu
+- Gujarati
+- Punjabi
+- Bengali
+
+Complaints can also be submitted in multiple languages and Hinglish, with language preference support.
 
 ---
 
-## 3. Core Architecture & Tech Stack
+## Admin Experience
 
-| Layer | Technology | Rationale |
-|---|---|---|
-| **Frontend Framework** | React 19 + TypeScript | Strict type safety, high speed, and component modularity |
-| **Build & Dev Tool** | Vite 8 | Instant HMR and sub-second production builds |
-| **Styling & Design System** | Tailwind CSS | Warm off-white (`#FAF9F6`), electric violet (`#7C3AED`), status colors, JetBrains Mono numbers |
-| **Icons** | Lucide React | Consistent, accessible civic UI symbols |
-| **Backend API** | Node.js + Express + TypeScript (`tsx`) | Robust REST endpoints for triage, clustering, response composition, and SLA monitoring |
-| **Database & Persistence** | Relational ACID JSON Store + Supabase compatibility | Foreign key relationships (`users`, `complaints`, `master_issues`, `notifications`), atomic writes, zero-config local boot |
-| **AI Intelligence Layer** | Pluggable LLM (OpenAI / Gemini) + Advanced Built-in NLP Fallback | Works 100% reliably out of the box with zero external API key requirements, and automatically uses LLM when keys are provided |
+### Admin taskbar
+The admin taskbar contains only:
 
----
+- **Dashboard**
+- **Issues**
+- **Notifications**
+- **Reminders**
 
-## 4. Key Product Capabilities
+### Admin Dashboard
+The Dashboard is a clean workspace launcher. Instead of displaying the full issue wall, it provides clickable boxes for:
 
-### 🧠 1. Multilingual Natural Language Understanding
-- Understands **English**, **Hindi (Devanagari)**, and colloquial **Hinglish** (e.g. *"paani nahi aa raha"*, *"subah se band"*, *"kisi ne slot block kiya"*, *"kooda nahi uthaya"*).
-- Detects the resident's dialect and preserves raw text while generating a normalized English summary.
+- **Issue Galaxy**
+- **Insights**
+- **Society Notices**
+- **Society Chat**
 
-### 🎯 2. Low-Confidence Disambiguation (Section 17)
-- If a complaint references multiple categories (e.g. *"Car parked near security gate blocked guard's view"*), confidence drops to ~54%.
-- The system presents human override choices: `[Confirm Parking (54%)]` and `[Choose Security (46%)]` — ensuring humans retain oversight.
+### Admin Issues
+The previous dense four-column Kanban-style layout has been replaced with **categorized clickable lists**.
 
-### 🛡️ 3. Failure Fallback Guarantee (Section 49)
-- If the AI engine encounters a simulated failure or offline network, the application gracefully defaults to:
-  - `Category: Other`
-  - `Urgency: Medium`
-  - `Status: Manual Review Required`
-- The system **never crashes**.
+Issues are segregated by type/category. Each entry shows the issue and the number of residents reporting it. Selecting an issue opens the affected residents and their available wing/flat details.
 
-### 🌌 4. Issue Galaxy Visualization (Section 24)
-- An interactive SVG constellation with the Master Issue at the center and satellite flat nodes (`B-302`, `B-504`, `B-701`, `B-203`, `B-601`, `B-402`) in orbit. Hovering or clicking any node opens the complaint file.
+This keeps the admin Issues section clean and information-dense without repeated large complaint cards.
 
-### 🗺️ 5. Society Architectural Heatmap (Section 39)
-- Stylized 4-Wing matrix (Wings A, B, C, D) across 7 floors with color-coded density dots (🟢 Normal, 🟡 Medium, 🟠 High, 🔴 Critical). Clicking any wing filters relevant issues.
-
-### ⏱️ 6. Real-Time SLA Countdown & Escalation (Section 32 & 33)
-- Live monospaced countdown timers (`01:42:17 remaining`).
-- Auto-escalation triggers when deadlines are breached or nearing risk.
+### Issue Galaxy
+Issue Galaxy uses a **dark navy / deep-blue galaxy theme**. Complaints appear as star-like nodes in a constellation layout, with relationships between related complaints and Master Issues. Nodes can be selected to inspect complaint and location information.
 
 ---
 
-## 5. Demo Accounts
+## Authentication
 
-| Role | Name | Email | Default View |
-|---|---|---|---|
-| **Resident** | Mrs. Sunita Sharma | `resident@shikayatbox.demo` | Flat B-402 Smart Box & Tracking |
-| **Committee Lead** | Rohan Sharma | `committee@shikayatbox.demo` | Society Command Center & Kanban |
-| **Admin / Secretary** | Priya Nair | `admin@shikayatbox.demo` | Society Pulse & Audit History |
+### Resident
+Registration fields:
 
-*Switch personas instantly using the persona switcher in the top-right corner of the Navbar.*
+- Mr / Mrs / Ms
+- Full name
+- Phone number
+- Wing
+- Flat number
+- Password
 
----
+Login uses **phone number + password**.
 
-## 6. Installation & Quickstart
+### Admin
+Separate admin authentication uses **Admin ID / phone + password** with role-based access.
 
-### Prerequisites
-- Node.js `v18+` (Tested on `v24.14.1`)
-- npm `v9+`
+### Demo accounts
+The project includes configured demo resident and admin accounts for evaluation. The actual credentials should be kept out of the public repository and provided through the private deployment/demo instructions.
 
-### Step 1: Install Dependencies
-```bash
-cd shikayat-box
-npm install
-```
+- Demo resident: **Mrs. Sunita Sharma**, B Wing, B-402
+- Demo admin: **Priya Nair**, Society Secretary, Admin ID **ADMIN-001**
 
-### Step 2: Configure Environment (Optional)
-The application works immediately out-of-the-box with its built-in NLP engine. To optionally connect external LLM providers:
-```bash
-cp .env.example .env
-```
-Fill in `.env`:
-```env
-PORT=3001
-VITE_API_URL=http://localhost:3001/api
-OPENAI_API_KEY=your_openai_api_key_here
-GEMINI_API_KEY=your_gemini_api_key_here
-```
-
-### Step 3: Run Full-Stack Development
-```bash
-npm run dev
-```
-- **Web Frontend:** `http://localhost:5173`
-- **Backend API:** `http://localhost:3001`
+> Do not commit passwords, phone credentials, session secrets, MongoDB credentials or API keys to this public README or repository.
 
 ---
 
-## 7. Database Schema & Entities
+## Core Capabilities
 
-The application stores clean relational models:
+- Multilingual AI complaint understanding
+- English, Hindi, Devanagari and Hinglish complaint handling
+- Duplicate/related complaint detection
+- Master Issues and issue clustering
+- SLA countdown and escalation
+- Resolution evidence and resident verification
+- Categorized resident/admin issue lists
+- **Issue Galaxy** constellation visualization
+- **Society Notices** with targeted audiences and scheduling
+- **Society Chat** for members
+- In-app **Notifications**
+- Admin **Reminders** with Upcoming / In Progress / Completed / Overdue states
+- Mobile-first responsive UI
+- Scroll-based motion and micro-interactions
+- `prefers-reduced-motion` support
 
-```mermaid
-erDiagram
-    USERS ||--o{ COMPLAINTS : submits
-    COMPLAINTS }o--o| MASTER_ISSUES : clusters_into
-    COMPLAINTS ||--o{ TIMELINE_EVENTS : logs
-    COMPLAINTS ||--o{ NOTIFICATIONS : triggers
+### Society Notices
+Admins can create notices with title, description, date/time, priority and target audience. Notices can target the entire society, wing, floor or flat and can be published immediately or scheduled.
 
-    COMPLAINTS {
-        string id PK
-        string case_id "WC-024"
-        string resident_name
-        string resident_flat "B-402"
-        string wing "B Wing"
-        string original_message
-        string normalized_summary
-        string language "hinglish"
-        string category "Water"
-        string urgency "HIGH"
-        int confidence "94"
-        int impact_score "78"
-        string status "IN_PROGRESS"
-        datetime sla_deadline
-        boolean reopened
-        int evidence_relevance_score "91"
-    }
-
-    MASTER_ISSUES {
-        string id PK
-        string master_case_id "WC-M024"
-        string title
-        string category
-        string urgency
-        int impact_score
-        int affected_flats_count "23"
-        string[] child_complaint_ids
-    }
-```
+### Society Chat
+A dedicated Society Chat section is available to members and is accessible through the resident Home and admin Dashboard workspaces.
 
 ---
 
-## 8. Resetting Demo Data
-At any point during evaluation or demonstration, click the **Reset Demo (🔄)** icon in the Navbar, or send a POST request:
-```bash
-curl -X POST http://localhost:3001/api/demo/reset
-```
-This instantly re-seeds the dataset with 35+ realistic complaints in English, Hindi, and Hinglish.
+## Architecture & Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | React + TypeScript |
+| Build | Vite |
+| Styling | Tailwind CSS |
+| Icons | Lucide React |
+| Backend | Node.js + Express + TypeScript |
+| Database | MongoDB |
+| AI | Pluggable LLM integration + built-in NLP fallback |
+| Deployment | GitHub + Vercel |
+
+### MongoDB entities
+The persistent backend is designed around entities such as:
+
+- Users
+- Complaints
+- Master Issues
+- Timeline events
+- Notifications
+- Society Notices
+- Reminders
+- Society Chat messages
+- Language preferences
 
 ---
 
-## 9. Design System Compliance
-- **Wordmark:** **SHIKAYAT** (slate-900) **BOX** (violet-600)
-- **Palette:** Warm off-white (`#FAF9F6`), Deep Charcoal (`#0F172A`), Electric Violet (`#7C3AED`)
-- **Status Colors:** Critical (Red), High (Orange), Medium (Amber), Low (Emerald)
-- **Zero generic AI robot illustrations:** Focus on operational clarity, typography hierarchy, and immediate civic utility.
+## Environment & Security
+
+Production configuration is supplied through server-side environment variables, including the MongoDB connection and session configuration.
+
+**Never commit actual secret values to GitHub.** Configure production secrets in **Vercel → Project → Settings → Environment Variables**.
+
+Passwords must be securely hashed in production. Residents should only access permitted personal information, while admins receive the operational access required for society management.
+
+The core application does not require a WhatsApp API.
+
+---
+
+## Vercel Deployment
+
+The project is connected to the GitHub `main` branch for Vercel deployment. New commits can trigger a new Vercel deployment automatically.
+
+For production:
+
+1. Push changes to `main`.
+2. Confirm the Vercel deployment starts.
+3. Configure required environment variables in Vercel.
+4. Wait for the deployment to become **Ready**.
+5. Test resident and admin authentication and the major workflows.
+
+---
+
+## Design Direction
+
+### Resident
+**Tomato red + pink + white** with a friendly, accessible, mobile-first interface.
+
+### Admin
+Minimal navigation, clean categorized issue lists and dedicated workspace boxes.
+
+### Issue Galaxy
+**Dark navy / deep blue** with star-like complaint nodes and constellation-style connections.
+
+### Accessibility
+- Clear labels and icons
+- Large touch targets
+- Responsive layouts
+- Loading, empty and error states
+- Reduced-motion support
+- Minimal visual clutter
+
+---
+
+## Product Journey
+
+**REPORT → UNDERSTAND → PRIORITIZE → ACT → NOTIFY → RESOLVE → VERIFY → PREVENT**
 
 ---
 
 **SHIKAYAT BOX**  
-*Turn messy complaints into clear action.*
+*Ek page, aapki baat. Seedha hum tak.*
