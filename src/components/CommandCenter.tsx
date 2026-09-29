@@ -24,11 +24,11 @@ const go = (tab: string) => {
 export const CommandCenter: React.FC<CommandCenterProps> = ({ complaints, onOpenIssue, tab }) => {
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
 
-  // App currently mounts one CommandCenter for both admin Dashboard and Issues.
-  // PortalNav sets body.dataset.page synchronously before calling onTab(), so use
-  // that value when App does not pass the optional tab prop. This prevents the
-  // Dashboard/Issues views from appearing one step behind or always showing Dashboard.
-  const activeTab = tab || document.body.dataset.page || 'dashboard';
+  // App currently renders this component for both Dashboard and Issues.
+  // Do NOT default an omitted tab to "dashboard": App does not pass the tab prop.
+  // PortalNav writes the current target synchronously to body.dataset.page before
+  // calling onTab(), so that marker is the authoritative page selector here.
+  const activeTab = document.body.dataset.page || tab || 'dashboard';
   const isIssues = activeTab === 'issues';
 
   const grouped = useMemo(() => {
