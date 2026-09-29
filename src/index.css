@@ -15,13 +15,14 @@
 @keyframes urgent-glow{0%,100%{border-color:rgba(244,63,94,.35);box-shadow:0 0 10px rgba(244,63,94,.12)}50%{border-color:rgba(244,63,94,.8);box-shadow:0 0 18px rgba(244,63,94,.25)}}
 .animate-urgent-border{animation:urgent-glow 2s infinite ease-in-out}
 @keyframes page-enter{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
-@keyframes soft-rise{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
+@keyframes soft-rise{from{opacity:0;transform:translateY(22px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
 @keyframes badge-pop{0%{transform:scale(.85);opacity:.4}70%{transform:scale(1.08);opacity:1}100%{transform:scale(1)}}
 @keyframes float-slow{0%,100%{transform:translate3d(0,0,0) rotate(0deg)}50%{transform:translate3d(0,-10px,0) rotate(3deg)}}
 @keyframes complaint-orbit{0%,100%{transform:rotate(5deg) translateY(0)}50%{transform:rotate(-5deg) translateY(-8px)}}
 @keyframes loading-bar{0%{transform:translateX(-110%)}55%{transform:translateX(90%)}100%{transform:translateX(180%)}}
 .motion-page{animation:page-enter .42s cubic-bezier(.22,1,.36,1)}
-.motion-rise{animation:soft-rise .55s cubic-bezier(.22,1,.36,1) both}
+.motion-rise{animation:soft-rise .65s cubic-bezier(.22,1,.36,1) both}
+@supports(animation-timeline:view()){.motion-rise{animation:soft-rise linear both;animation-timeline:view();animation-range:entry 0% cover 32%}}
 .motion-rise:nth-child(2){animation-delay:70ms}.motion-rise:nth-child(3){animation-delay:140ms}.motion-rise:nth-child(4){animation-delay:210ms}.motion-rise:nth-child(5){animation-delay:280ms}
 .notification-pop{animation:badge-pop .35s ease-out}
 .card-lift{transition:transform .24s ease,box-shadow .24s ease,border-color .24s ease}.card-lift:hover{transform:translateY(-3px);box-shadow:0 16px 38px rgba(190,24,93,.10);border-color:#FECDD3}
