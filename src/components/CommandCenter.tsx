@@ -17,19 +17,16 @@ interface CommandCenterProps {
 const normalize = (value: string) => value.trim().toLowerCase().replace(/\s+/g, ' ');
 
 const go = (tab: string) => {
-  document.body.dataset.page = tab === 'home' ? 'home' : tab;
   window.dispatchEvent(new CustomEvent('sb-admin-nav', { detail: tab }));
 };
 
-export const CommandCenter: React.FC<CommandCenterProps> = ({ complaints, onOpenIssue, tab }) => {
+export const CommandCenter: React.FC<CommandCenterProps> = ({ complaints, onOpenIssue, tab = 'dashboard' }) => {
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
 
-  // App currently renders this component for both Dashboard and Issues.
-  // Do NOT default an omitted tab to "dashboard": App does not pass the tab prop.
-  // PortalNav writes the current target synchronously to body.dataset.page before
-  // calling onTab(), so that marker is the authoritative page selector here.
-  const activeTab = document.body.dataset.page || tab || 'dashboard';
-  const isIssues = activeTab === 'issues';
+  // App.tsx is the single source of truth for the active admin page.
+  // Do not read document.body.dataset.page here: that legacy marker can lag
+  // behind React state during navigation and cause Issues to render Dashboard.
+  const isIssues = tab === 'issues';
 
   const grouped = useMemo(() => {
     const map = new Map<string, { key: string; title: string; category: string; complaints: Complaint[] }>();
