@@ -2,6 +2,8 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import { Complaint, MasterIssue, NotificationItem, UserAccount, Notice, Reminder } from '../src/types';
+import { INITIAL_COMPLAINTS, INITIAL_MASTER_ISSUES, INITIAL_NOTIFICATIONS, DEMO_USERS } from '../src/data/seedData';
+
 const DATA_DIR=path.join(process.cwd(),'data'); const DB_FILE=path.join(DATA_DIR,'db.json');
 type StoredUser=UserAccount & {password_hash?:string;password_salt?:string};
 export interface DatabaseSchema{users:StoredUser[];complaints:Complaint[];master_issues:MasterIssue[];notifications:NotificationItem[];notices:Notice[];reminders:Reminder[];metadata:{last_reset:string;version:string;society_name:string;total_flats:number};}
@@ -15,7 +17,7 @@ class RelationalDatabase{
  public resetToSeed(){this.data={users:this.seededUsers(),complaints:INITIAL_COMPLAINTS,master_issues:INITIAL_MASTER_ISSUES,notifications:INITIAL_NOTIFICATIONS,notices:[],reminders:[],metadata:{last_reset:new Date().toISOString(),version:'1.1.0',society_name:'Greenwood Heights Society',total_flats:104}};this.persist();return this.data}
  public findUserByPhone(phone:string){const normalized=phone.replace(/\D/g,'');return this.data.users.find(u=>(u.phone||'').replace(/\D/g,'')===normalized)}
  public findAdmin(adminId?:string,phone?:string){return this.data.users.find(u=>u.role==='admin'&&((adminId&&u.admin_id?.toLowerCase()===adminId.toLowerCase())||(phone&&(u.phone||'').replace(/\D/g,'')===phone.replace(/\D/g,''))))}
- public verifyUser(user:StoredUser,password:string){return!!(user.password_hash&&user.password_salt&&verifyPassword(password,user.password_salt,password_hash))}
+ public verifyUser(user:StoredUser,password:string){return!!(user.password_hash&&user.password_salt&&verifyPassword(password,user.password_salt,user.password_hash))}
  public createResident(input:{salutation:'Mr'|'Mrs'|'Ms';name:string;phone:string;wing:string;flat:string;password:string}):StoredUser{if(this.findUserByPhone(input.phone))throw new Error('A resident with this phone number already exists');const p=hashPassword(input.password);const user:StoredUser={id:`user-${Date.now()}`,name:`${input.salutation} ${input.name}`.trim(),email:`${input.phone.replace(/\D/g,'')}@resident.shikayatbox.local`,role:'resident',flat:input.flat,wing:input.wing,title:`Resident (${input.flat})`,phone:input.phone,salutation:input.salutation,language_preference:'english',password_hash:p.hash,password_salt:p.salt};this.data.users.push(user);this.persist();return user}
  public publicUser(user:StoredUser){const{password_hash,password_salt,...safe}=user;return safe}
  public getComplaints(){return this.data.complaints} public getComplaintById(id:string){return this.data.complaints.find(c=>c.id===id||c.case_id.toLowerCase()===id.toLowerCase())}
