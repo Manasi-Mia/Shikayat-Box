@@ -1,15 +1,15 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import { db } from './db';
 import { registerAuthRoutes, requireAuth, requireRole } from './authRoutes';
 import { triageComplaintAI, composeResidentResponseAI, evaluateResolutionEvidenceAI } from './aiService';
 import { Complaint, MasterIssue, Urgency, Notice, Reminder } from '../src/types';
-dotenv.config();
 export const app = express();
 const PORT = process.env.PORT || 3001;
 app.use(cors()); app.use(express.json({ limit: '10mb' }));
-app.get('/api/health',(req,res)=>res.json({status:'ok',product:'SHIKAYAT BOX',version:'1.2.0',timestamp:new Date().toISOString()}));
+app.use(async (_req,res,next)=>{try{await db.waitReady();next()}catch(err){console.error('[DB] Startup/connection error:',err);res.status(503).json({error:'Database unavailable. Check MONGODB_URI and MongoDB network access.'})}});
+app.get('/api/health',(_req,res)=>res.json({status:'ok',product:'SHIKAYAT BOX',database:process.env.MONGODB_URI?'mongodb':'local',version:'1.3.0',timestamp:new Date().toISOString()}));
 registerAuthRoutes(app);
 app.get('/api/chat',requireAuth,(req,res)=>res.json(db.getChatMessages()));
 app.post('/api/chat',requireAuth,(req,res)=>{const text=String(req.body?.text||'').trim();if(!text)return res.status(400).json({error:'Message is required'});if(text.length>500)return res.status(400).json({error:'Message is too long'});const user=(req as any).user;res.status(201).json(db.createChatMessage({sender_id:user.id,sender_name:user.name,sender_role:user.role,text}));});
@@ -26,7 +26,7 @@ app.post('/api/complaints/:id/response',(req,res)=>{const{id}=req.params;const{m
 app.get('/api/master-issues',(req,res)=>res.json(db.getMasterIssues())); app.post('/api/master-issues',(req,res)=>res.status(201).json(db.createMasterIssue(req.body as MasterIssue)));
 app.get('/api/notifications',(req,res)=>res.json(db.getNotifications())); app.post('/api/notifications/:id/read',(req,res)=>{db.markNotificationRead(req.params.id);res.json({success:true})}); app.post('/api/notifications/mark-all-read',(req,res)=>{db.markAllNotificationsRead();res.json({success:true})});
 app.get('/api/notices',(req,res)=>res.json(db.getNotices())); app.post('/api/notices',requireRole('admin','committee'),(req,res)=>{const body=req.body as Omit<Notice,'id'|'created_at'>;res.status(201).json(db.createNotice(body))});
-app.get('/api/reminders',(req,res)=>res.json(db.getReminders())); app.post('/api/reminders',requireRole('admin','committee'),(req,res)=>res.status(201).json(db.createReminder(req.body as Omit<Reminder,'id'|'created_at'>))); app.patch('/api/reminders/:id',requireRole('admin','committee'),(req,res)=>{const r=db.updateReminder(req.params.id,req.body.status);if(!r)return res.status(404).json({error:'Reminder not found'});res.json(r)});
+app.get('/api/reminders',(req,res)=>res.json(db.getReminders())); app.post('/api/reminders',requireRole('admin','committee'),(req,res)=>{const r=db.createReminder(req.body as Omit<Reminder,'id'|'created_at'>);res.status(201).json(r)}); app.patch('/api/reminders/:id',requireRole('admin','committee'),(req,res)=>{const r=db.updateReminder(req.params.id,req.body.status);if(!r)return res.status(404).json({error:'Reminder not found'});res.json(r)});
 app.post('/api/demo/reset',(req,res)=>{const refreshed=db.resetToSeed();res.json({message:'Database reset to demo state',count:refreshed.complaints.length})});
 if(!process.env.VERCEL)app.listen(PORT,()=>console.log(`[SHIKAYAT BOX Backend] Server running on http://localhost:${PORT}`));
 export default app;
