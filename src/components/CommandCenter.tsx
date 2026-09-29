@@ -15,17 +15,21 @@ interface CommandCenterProps {
 }
 
 const normalize = (value: string) => value.trim().toLowerCase().replace(/\s+/g, ' ');
+
 const go = (tab: string) => {
   document.body.dataset.page = tab === 'home' ? 'home' : tab;
   window.dispatchEvent(new CustomEvent('sb-admin-nav', { detail: tab }));
 };
 
-export const CommandCenter: React.FC<CommandCenterProps> = ({ complaints, onOpenIssue, tab = 'dashboard' }) => {
+export const CommandCenter: React.FC<CommandCenterProps> = ({ complaints, onOpenIssue, tab }) => {
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
-  // Use the React navigation state supplied by App as the source of truth.
-  // Reading document.body.dataset.page during render caused Dashboard/Issues
-  // to lag one click behind because the dataset was updated by an effect.
-  const isIssues = tab === 'issues';
+
+  // App currently mounts one CommandCenter for both admin Dashboard and Issues.
+  // PortalNav sets body.dataset.page synchronously before calling onTab(), so use
+  // that value when App does not pass the optional tab prop. This prevents the
+  // Dashboard/Issues views from appearing one step behind or always showing Dashboard.
+  const activeTab = tab || document.body.dataset.page || 'dashboard';
+  const isIssues = activeTab === 'issues';
 
   const grouped = useMemo(() => {
     const map = new Map<string, { key: string; title: string; category: string; complaints: Complaint[] }>();
@@ -79,7 +83,7 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({ complaints, onOpen
               </div>
             </section>
           ))}
-          {categories.length===0&&<div className="bg-white rounded-2xl border border-slate-200 p-10 text-center text-sm text-slate-500">No issues available yet.</div>}
+          {categories.length === 0 && <div className="bg-white rounded-2xl border border-slate-200 p-10 text-center text-sm text-slate-500">No issues available yet.</div>}
         </div>
         {selected && <IssuePeopleModal issue={selected} onClose={() => setSelectedKey(null)} onOpenIssue={onOpenIssue} />}
       </div>
