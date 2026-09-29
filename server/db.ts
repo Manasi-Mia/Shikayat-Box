@@ -22,6 +22,7 @@ class RelationalDatabase{
  private async persistMongo(){if(!MONGO_URI)return;try{await connectMongo();await mongoDb!.collection('app_state').updateOne({key:'main'},{$set:{key:'main',data:this.data,updated_at:new Date()}},{upsert:true})}catch(err){console.error('[DB] MongoDB persist error:',err)}}
  private persist(){this.persistLocal();void this.persistMongo()}
  public async waitReady(){await this.ready}
+ public getUsers(){return this.data.users}
  public resetToSeed(){this.data={users:this.seededUsers(),complaints:INITIAL_COMPLAINTS,master_issues:INITIAL_MASTER_ISSUES,notifications:INITIAL_NOTIFICATIONS,notices:[],reminders:[],chat_messages:[],metadata:{last_reset:new Date().toISOString(),version:'1.3.0',society_name:'Greenwood Heights Society',total_flats:104}};this.persist();return this.data}
  public findUserByPhone(phone:string){const normalized=phone.replace(/\D/g,'');return this.data.users.find(u=>(u.phone||'').replace(/\D/g,'')===normalized)}
  public findAdmin(adminId?:string,phone?:string){return this.data.users.find(u=>u.role==='admin'&&((adminId&&u.admin_id?.toLowerCase()===adminId.toLowerCase())||(phone&&(u.phone||'').replace(/\D/g,'')===phone.replace(/\D/g,''))))}
