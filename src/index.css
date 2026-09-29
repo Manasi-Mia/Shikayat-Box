@@ -20,6 +20,8 @@
 @keyframes float-slow{0%,100%{transform:translate3d(0,0,0) rotate(0deg)}50%{transform:translate3d(0,-10px,0) rotate(3deg)}}
 @keyframes complaint-orbit{0%,100%{transform:rotate(5deg) translateY(0)}50%{transform:rotate(-5deg) translateY(-8px)}}
 @keyframes loading-bar{0%{transform:translateX(-110%)}55%{transform:translateX(90%)}100%{transform:translateX(180%)}}
+@keyframes society-model-float{0%,100%{transform:translate3d(-50%,0,0) rotateX(4deg) rotateY(-18deg) rotateZ(0deg)}50%{transform:translate3d(-50%,-12px,0) rotateX(7deg) rotateY(18deg) rotateZ(-1deg)} }
+@keyframes society-model-glow{0%,100%{opacity:.38;transform:translateX(-50%) scale(.92)}50%{opacity:.68;transform:translateX(-50%) scale(1.04)}}
 .motion-page{animation:page-enter .42s cubic-bezier(.22,1,.36,1)}
 .motion-rise{animation:soft-rise .65s cubic-bezier(.22,1,.36,1) both}
 @supports(animation-timeline:view()){.motion-rise{animation:soft-rise linear both;animation-timeline:view();animation-range:entry 0% cover 32%}}
@@ -28,5 +30,21 @@
 .card-lift{transition:transform .24s ease,box-shadow .24s ease,border-color .24s ease}.card-lift:hover{transform:translateY(-3px);box-shadow:0 16px 38px rgba(190,24,93,.10);border-color:#FECDD3}
 .animate-float-slow{animation:float-slow 5s ease-in-out infinite}.animate-complaint-orbit{animation:complaint-orbit 4.5s ease-in-out infinite}.animate-loading-bar{animation:loading-bar 2.2s ease-in-out infinite}
 .safe-bottom{padding-bottom:calc(1rem + env(safe-area-inset-bottom))}
+
+/* Login: lightweight CSS 3D society model on the left panel. It uses perspective,
+   preserve-3d and animated transforms, so no external 3D library/model download is required. */
+@supports (transform-style:preserve-3d){
+  #root > div[class*="min-h-screen"] > div[class*="max-w-5xl"] > div[class*="bg-gradient-to-br"]:first-child{perspective:1100px;perspective-origin:50% 58%;isolation:isolate}
+  #root > div[class*="min-h-screen"] > div[class*="max-w-5xl"] > div[class*="bg-gradient-to-br"]:first-child::before{content:"";position:absolute;left:50%;bottom:76px;width:300px;height:54px;border-radius:50%;background:radial-gradient(ellipse at center,rgba(255,255,255,.32),rgba(255,255,255,.04) 58%,transparent 72%);filter:blur(7px);animation:society-model-glow 5s ease-in-out infinite;pointer-events:none;z-index:1}
+  #root > div[class*="min-h-screen"] > div[class*="max-w-5xl"] > div[class*="bg-gradient-to-br"]:first-child::after{content:"";position:absolute;left:50%;bottom:105px;width:205px;height:235px;border-radius:10px 10px 5px 5px;background:
+    linear-gradient(90deg,rgba(42,10,24,.28) 0 7%,transparent 7% 93%,rgba(42,10,24,.2) 93% 100%),
+    repeating-linear-gradient(90deg,transparent 0 23px,rgba(255,255,255,.92) 23px 37px,transparent 37px 61px),
+    repeating-linear-gradient(180deg,transparent 0 25px,rgba(255,255,255,.82) 25px 42px,transparent 42px 60px),
+    linear-gradient(135deg,#fff5f7 0%,#fecdd3 38%,#fb7185 100%);box-shadow:26px 18px 0 -8px rgba(89,16,43,.20),-12px 10px 0 -6px rgba(255,255,255,.20),0 28px 45px rgba(72,10,35,.25);transform-style:preserve-3d;transform-origin:center bottom;animation:society-model-float 9s ease-in-out infinite;clip-path:polygon(8% 0,92% 0,100% 7%,100% 100%,0 100%,0 7%);pointer-events:none;z-index:2}
+}
+
+@media(max-width:1023px){
+ #root > div[class*="min-h-screen"] > div[class*="max-w-5xl"] > div[class*="bg-gradient-to-br"]:first-child::before,#root > div[class*="min-h-screen"] > div[class*="max-w-5xl"] > div[class*="bg-gradient-to-br"]:first-child::after{display:none}
+}
 @media(max-width:640px){body{font-size:15px}.motion-page{animation-duration:.3s}}
-@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.motion-page,.motion-rise,.notification-pop,.animate-subtle-pulse,.animate-urgent-border,.animate-float-slow,.animate-complaint-orbit,.animate-loading-bar{animation:none!important}.card-lift{transition:none}.card-lift:hover{transform:none}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.motion-page,.motion-rise,.notification-pop,.animate-subtle-pulse,.animate-urgent-border,.animate-float-slow,.animate-complaint-orbit,.animate-loading-bar{animation:none!important}.card-lift{transition:none}.card-lift:hover{transform:none}#root > div[class*="min-h-screen"] > div[class*="max-w-5xl"] > div[class*="bg-gradient-to-br"]:first-child::before,#root > div[class*="min-h-screen"] > div[class*="max-w-5xl"] > div[class*="bg-gradient-to-br"]:first-child::after{animation:none!important}}
