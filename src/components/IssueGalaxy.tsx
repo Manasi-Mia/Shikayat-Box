@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { AlertTriangle, ArrowLeft, Info, Orbit, Sparkles, Star, X } from 'lucide-react';
+import { AlertTriangle, Info, Orbit, Star, X } from 'lucide-react';
 import { MasterIssue, Complaint } from '../types';
 
 interface IssueGalaxyProps {
@@ -89,7 +89,7 @@ export const IssueGalaxy: React.FC<IssueGalaxyProps> = ({ masterIssue, allCompla
         <div className="grid sm:grid-cols-3 gap-3 mt-4">
           <div className="rounded-2xl border border-blue-200/10 bg-white/[.03] p-4"><div className="text-[10px] uppercase tracking-wider text-blue-200/50 font-black">Connected complaints</div><div className="text-2xl font-black mt-1">{childComplaints.length}</div></div>
           <div className="rounded-2xl border border-blue-200/10 bg-white/[.03] p-4"><div className="text-[10px] uppercase tracking-wider text-blue-200/50 font-black">Unique flats</div><div className="text-2xl font-black mt-1">{new Set(childComplaints.map(c => c.resident_flat)).size}</div></div>
-          <div className="rounded-2xl border border-blue-200/10 bg-white/[.03] p-4"><div className="text-[10px] uppercase tracking-wider text-blue-200/50 font-black">Priority</div><div className="text-2xl font-black mt-1 flex items-center gap-2"><AlertTriangle className="w-5 h-5 text-amber-300"/>{masterIssue.severity || 'Active'}</div></div>
+          <div className="rounded-2xl border border-blue-200/10 bg-white/[.03] p-4"><div className="text-[10px] uppercase tracking-wider text-blue-200/50 font-black">Priority</div><div className="text-2xl font-black mt-1 flex items-center gap-2"><AlertTriangle className="w-5 h-5 text-amber-300"/>{masterIssue.urgency}</div></div>
         </div>
       </div>
     </div>
