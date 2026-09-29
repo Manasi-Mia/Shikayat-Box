@@ -9,27 +9,19 @@ type StoredUser=UserAccount & {password_hash?:string;password_salt?:string};
 export interface DatabaseSchema{users:StoredUser[];complaints:Complaint[];master_issues:MasterIssue[];notifications:NotificationItem[];notices:Notice[];reminders:Reminder[];chat_messages:ChatMessage[];metadata:{last_reset:string;version:string;society_name:string;total_flats:number;};}
 export function hashPassword(password:string,salt=crypto.randomBytes(16).toString('hex')){return{salt,hash:crypto.scryptSync(password,salt,64).toString('hex')}}
 export function verifyPassword(password:string,salt:string,expectedHash:string){const actual=crypto.scryptSync(password,salt,64);const expected=Buffer.from(expectedHash,'hex');return expected.length===actual.length&&crypto.timingSafeEqual(actual,expected)}
-
-const MONGO_URI=process.env.MONGODB_URI;
-const MONGO_DB=process.env.MONGODB_DB||'shikayat_box';
-let mongoClient:MongoClient|undefined; let mongoDb:Db|undefined; let mongoReady:Promise<void>|undefined;
-
-async function connectMongo(){
- if(!MONGO_URI)return;
- if(mongoDb)return;
- if(!mongoReady){mongoReady=(async()=>{mongoClient=new MongoClient(MONGO_URI);await mongoClient.connect();mongoDb=mongoClient.db(MONGO_DB);await mongoDb.collection('app_state').createIndex({key:1},{unique:true});console.log('[DB] MongoDB connected');})().catch(err=>{mongoReady=undefined;console.error('[DB] MongoDB connection failed:',err);throw err;});}
- await mongoReady;
-}
-
+const MONGO_URI=process.env.MONGODB_URI; const MONGO_DB=process.env.MONGODB_DB||'shikayat_box';
+let mongoClient:MongoClient|undefined; let mongoDb:Db|undefined;
+async function connectMongo(){if(!MONGO_URI)return;if(mongoDb)return;if(!mongoClient){mongoClient=new MongoClient(MONGO_URI);await mongoClient.connect();mongoDb=mongoClient.db(MONGO_DB);await mongoDb.collection('app_state').createIndex({key:1},{unique:true});console.log('[DB] MongoDB connected');}}
 class RelationalDatabase{
- private data:DatabaseSchema;
- constructor(){this.data=this.loadLocalOrSeed();void this.loadFromMongo()}
+ private data:DatabaseSchema; private ready:Promise<void>;
+ constructor(){this.data=this.loadLocalOrSeed();this.ready=this.loadFromMongo();}
  private seededUsers():StoredUser[]{return DEMO_USERS.map((u,i)=>{const p=hashPassword('demo1234');return{...u,phone:u.phone||(i===0?'+919820144521':i===1?'+919000000002':'+919000000001'),admin_id:u.role==='admin'?'ADMIN-001':undefined,password_hash:p.hash,password_salt:p.salt}})}
  private loadLocalOrSeed():DatabaseSchema{try{if(!fs.existsSync(DATA_DIR))fs.mkdirSync(DATA_DIR,{recursive:true});if(fs.existsSync(DB_FILE)){const parsed=JSON.parse(fs.readFileSync(DB_FILE,'utf-8'));if(Array.isArray(parsed.complaints)&&Array.isArray(parsed.users)){parsed.notices=Array.isArray(parsed.notices)?parsed.notices:[];parsed.reminders=Array.isArray(parsed.reminders)?parsed.reminders:[];parsed.notifications=Array.isArray(parsed.notifications)?parsed.notifications:[];parsed.chat_messages=Array.isArray(parsed.chat_messages)?parsed.chat_messages:[];return parsed as DatabaseSchema}}}catch(err){console.warn('[DB] Failed reading db.json, re-seeding...',err)}const seeded:DatabaseSchema={users:this.seededUsers(),complaints:INITIAL_COMPLAINTS,master_issues:INITIAL_MASTER_ISSUES,notifications:INITIAL_NOTIFICATIONS,notices:[],reminders:[],chat_messages:[],metadata:{last_reset:new Date().toISOString(),version:'1.3.0',society_name:'Greenwood Heights Society',total_flats:104}};this.persistLocal(seeded);return seeded}
  private persistLocal(schema?:DatabaseSchema){try{if(!fs.existsSync(DATA_DIR))fs.mkdirSync(DATA_DIR,{recursive:true});fs.writeFileSync(DB_FILE,JSON.stringify(schema||this.data,null,2),'utf-8')}catch(err){console.error('[DB] Local persist error:',err)}}
- private async loadFromMongo(){if(!MONGO_URI)return;try{await connectMongo();const doc=await mongoDb!.collection('app_state').findOne({key:'main'});if(doc?.data){this.data=doc.data as DatabaseSchema;console.log('[DB] Loaded state from MongoDB')}else{await this.persistMongo()}}catch(err){console.error('[DB] MongoDB load error:',err)}}
+ private async loadFromMongo(){if(!MONGO_URI)return;try{await connectMongo();const doc=await mongoDb!.collection('app_state').findOne({key:'main'});if(doc?.data){this.data=doc.data as DatabaseSchema;console.log('[DB] Loaded state from MongoDB')}else{await this.persistMongo()}}catch(err){console.error('[DB] MongoDB load error:',err);throw err}}
  private async persistMongo(){if(!MONGO_URI)return;try{await connectMongo();await mongoDb!.collection('app_state').updateOne({key:'main'},{$set:{key:'main',data:this.data,updated_at:new Date()}},{upsert:true})}catch(err){console.error('[DB] MongoDB persist error:',err)}}
  private persist(){this.persistLocal();void this.persistMongo()}
+ public async waitReady(){await this.ready}
  public resetToSeed(){this.data={users:this.seededUsers(),complaints:INITIAL_COMPLAINTS,master_issues:INITIAL_MASTER_ISSUES,notifications:INITIAL_NOTIFICATIONS,notices:[],reminders:[],chat_messages:[],metadata:{last_reset:new Date().toISOString(),version:'1.3.0',society_name:'Greenwood Heights Society',total_flats:104}};this.persist();return this.data}
  public findUserByPhone(phone:string){const normalized=phone.replace(/\D/g,'');return this.data.users.find(u=>(u.phone||'').replace(/\D/g,'')===normalized)}
  public findAdmin(adminId?:string,phone?:string){return this.data.users.find(u=>u.role==='admin'&&((adminId&&u.admin_id?.toLowerCase()===adminId.toLowerCase())||(phone&&(u.phone||'').replace(/\D/g,'')===phone.replace(/\D/g,''))))}
