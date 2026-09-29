@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Activity, BarChart3, Bell, CheckCircle2, ChevronRight, FileText, Megaphone, MessageCircle, ListChecks, ShieldAlert, X, Orbit } from 'lucide-react';
+import { Activity, BarChart3, ChevronRight, Megaphone, MessageCircle, ListChecks, ShieldAlert, X, Orbit } from 'lucide-react';
 import { Complaint, MasterIssue, UserAccount } from '../types';
 
 interface CommandCenterProps {
@@ -11,15 +11,21 @@ interface CommandCenterProps {
   onOpenTwoMinuteTriage: () => void;
   onOpenResolution: (c: Complaint) => void;
   onRefresh: () => void;
+  tab?: string;
 }
 
 const normalize = (value: string) => value.trim().toLowerCase().replace(/\s+/g, ' ');
-const go = (tab: string) => window.dispatchEvent(new CustomEvent('sb-admin-nav', { detail: tab }));
+const go = (tab: string) => {
+  document.body.dataset.page = tab === 'home' ? 'home' : tab;
+  window.dispatchEvent(new CustomEvent('sb-admin-nav', { detail: tab }));
+};
 
-export const CommandCenter: React.FC<CommandCenterProps> = ({ complaints, onOpenIssue }) => {
+export const CommandCenter: React.FC<CommandCenterProps> = ({ complaints, onOpenIssue, tab = 'dashboard' }) => {
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
-  const page = document.body.dataset.page || 'dashboard';
-  const isIssues = page === 'issues';
+  // Use the React navigation state supplied by App as the source of truth.
+  // Reading document.body.dataset.page during render caused Dashboard/Issues
+  // to lag one click behind because the dataset was updated by an effect.
+  const isIssues = tab === 'issues';
 
   const grouped = useMemo(() => {
     const map = new Map<string, { key: string; title: string; category: string; complaints: Complaint[] }>();
@@ -58,7 +64,6 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({ complaints, onOpen
           </div>
           <div className="flex gap-2 text-xs font-bold"><span className="px-3 py-2 rounded-xl bg-rose-50 text-rose-600">{active} ongoing</span><span className="px-3 py-2 rounded-xl bg-emerald-50 text-emerald-600">{resolved} solved</span></div>
         </div>
-
         <div className="space-y-7">
           {categories.map(([category, items]) => (
             <section key={category}>
@@ -76,7 +81,6 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({ complaints, onOpen
           ))}
           {categories.length===0&&<div className="bg-white rounded-2xl border border-slate-200 p-10 text-center text-sm text-slate-500">No issues available yet.</div>}
         </div>
-
         {selected && <IssuePeopleModal issue={selected} onClose={() => setSelectedKey(null)} onOpenIssue={onOpenIssue} />}
       </div>
     );
@@ -89,7 +93,6 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({ complaints, onOpen
         <h1 className="text-3xl sm:text-4xl font-black text-slate-900 mt-3">Dashboard</h1>
         <p className="text-sm text-slate-500 mt-1">Choose a workspace. Detailed operational data stays inside its dedicated section.</p>
       </div>
-
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <AdminBox icon={<BarChart3 />} title="Insights" subtitle="AI patterns and analytics" onClick={() => go('insights')} />
         <AdminBox icon={<Orbit />} title="Issue Galaxy" subtitle="Complaints as a connected constellation" onClick={() => go('galaxy')} dark />
