@@ -1,5 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { Navbar } from './components/Navbar';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Bell, CheckCircle2, ChevronRight, Globe2, LogOut, ShieldCheck, Sparkles, UserRound } from 'lucide-react';
+import { PortalNav } from './components/PortalNav';
+import { AuthScreen } from './components/AuthScreen';
+import { NoticeBoard } from './components/NoticeBoard';
+import { ReminderCenter } from './components/ReminderCenter';
 import { LandingPage } from './components/LandingPage';
 import { ResidentReport } from './components/ResidentReport';
 import { ResidentTracking } from './components/ResidentTracking';
@@ -13,277 +17,55 @@ import { SocietyHeatmap } from './components/SocietyHeatmap';
 import { SocietyPulse } from './components/SocietyPulse';
 import { SearchModal } from './components/SearchModal';
 import { api } from './services/api';
-import { DEMO_USERS } from './data/seedData';
-import { Complaint, MasterIssue, NotificationItem, UserAccount } from './types';
+import { extraApi } from './services/extraApi';
+import { Complaint, MasterIssue, NotificationItem, UserAccount, Notice, Reminder, Language } from './types';
 
-export function App() {
-  const [currentUser, setCurrentUser] = useState<UserAccount>(DEMO_USERS[0]); // default Mrs. Sharma
-  const [currentTab, setCurrentTab] = useState<string>('landing');
-  
-  // Data states
-  const [complaints, setComplaints] = useState<Complaint[]>([]);
-  const [masterIssues, setMasterIssues] = useState<MasterIssue[]>([]);
-  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+const LANGUAGES: {id:Language;label:string;native:string}[] = [
+ {id:'english',label:'English',native:'English'},{id:'hindi',label:'Hindi',native:'हिन्दी'},{id:'marathi',label:'Marathi',native:'मराठी'},{id:'telugu',label:'Telugu',native:'తెలుగు'},{id:'gujarati',label:'Gujarati',native:'ગુજરાતી'},{id:'punjabi',label:'Punjabi',native:'ਪੰਜਾਬੀ'},{id:'bengali',label:'Bengali',native:'বাংলা'},{id:'hinglish',label:'Hinglish',native:'Hinglish'}
+];
 
-  // Active Selected Modals / Entities
-  const [activeComplaint, setActiveComplaint] = useState<Complaint | null>(null);
-  const [activeMaster, setActiveMaster] = useState<MasterIssue | null>(null);
-  const [resolvingComplaint, setResolvingComplaint] = useState<Complaint | null>(null);
-  const [isTwoMinuteOpen, setIsTwoMinuteOpen] = useState(false);
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [trackedCaseId, setTrackedCaseId] = useState<string>('WC-024');
+export function App(){
+ const [currentUser,setCurrentUser]=useState<UserAccount|null>(null);
+ const [token,setToken]=useState<string|null>(localStorage.getItem('sb_token'));
+ const [tab,setTab]=useState('home');
+ const [complaints,setComplaints]=useState<Complaint[]>([]); const [masterIssues,setMasterIssues]=useState<MasterIssue[]>([]); const [notifications,setNotifications]=useState<NotificationItem[]>([]); const [notices,setNotices]=useState<Notice[]>([]); const [reminders,setReminders]=useState<Reminder[]>([]);
+ const [activeComplaint,setActiveComplaint]=useState<Complaint|null>(null); const [activeMaster,setActiveMaster]=useState<MasterIssue|null>(null); const [resolvingComplaint,setResolvingComplaint]=useState<Complaint|null>(null); const [isTriageOpen,setIsTriageOpen]=useState(false); const [isSearchOpen,setIsSearchOpen]=useState(false); const [trackedCaseId,setTrackedCaseId]=useState('');
+ const [language,setLanguage]=useState<Language>((localStorage.getItem('sb_language') as Language)||'english');
 
-  // Load data on mount
-  const refreshAllData = async () => {
-    try {
-      const [cList, mList, nList] = await Promise.all([
-        api.getComplaints(),
-        api.getMasterIssues(),
-        api.getNotifications()
-      ]);
-      setComplaints(cList);
-      setMasterIssues(mList);
-      setNotifications(nList);
-    } catch (e) {
-      console.warn('Data fetch error:', e);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+ useEffect(()=>{ if(!token)return; fetch('http://localhost:3001/api/auth/me',{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.ok?r.json():Promise.reject()).then(d=>setCurrentUser(d.user)).catch(()=>{localStorage.removeItem('sb_token');setToken(null);}); },[token]);
+ const refresh=async()=>{try{const [c,m,n]=await Promise.all([api.getComplaints(),api.getMasterIssues(),api.getNotifications()]);setComplaints(c);setMasterIssues(m);setNotifications(n);const [ns,rs]=await Promise.all([extraApi.getNotices().catch(()=>[]),extraApi.getReminders().catch(()=>[])]);setNotices(ns);setReminders(rs);}catch(e){console.warn(e);}};
+ useEffect(()=>{if(currentUser)refresh();},[currentUser]);
+ useEffect(()=>{if(!currentUser)return;const timer=setInterval(refresh,30000);return()=>clearInterval(timer);},[currentUser]);
+ const setLang=(l:Language)=>{setLanguage(l);localStorage.setItem('sb_language',l);};
+ const logout=()=>{localStorage.removeItem('sb_token');setToken(null);setCurrentUser(null);};
+ const unread=notifications.filter(n=>!n.read && (!n.recipient_user_id || n.recipient_user_id===currentUser?.id)).length;
+ const residentComplaints=useMemo(()=>currentUser?complaints.filter(c=>c.resident_id===currentUser.id||c.resident_flat===currentUser.flat):[],[complaints,currentUser]);
+ const tracked=residentComplaints.find(c=>c.case_id===trackedCaseId)||residentComplaints[0];
+ const defaultMaster=masterIssues[0]||null;
 
-  useEffect(() => {
-    refreshAllData();
-  }, []);
+ if(!currentUser)return <AuthScreen onAuthenticated={(user,t)=>{localStorage.setItem('sb_token',t);setToken(t);setCurrentUser(user);setTab(user.role==='resident'?'home':'dashboard');}}/>;
+ const isAdmin=currentUser.role==='admin'||currentUser.role==='committee';
+ const markRead=async(n:NotificationItem)=>{await api.markNotificationRead(n.id);refresh();};
+ const createNotice=async(n:Omit<Notice,'id'|'created_at'|'created_by'>)=>{await extraApi.createNotice({...n,created_by:currentUser.id});await refresh();};
+ const createReminder=async(r:Omit<Reminder,'id'|'created_at'>)=>{await extraApi.createReminder(r);await refresh();};
+ const updateReminder=async(id:string,status:Reminder['status'])=>{await extraApi.updateReminder(id,status);await refresh();};
+ const createTask=async(title:string)=>{await api.createComplaint({original_message:`Maintenance Task: ${title}`,resident_name:'Managing Committee',resident_flat:'Facility',wing:'B Wing',location_detail:'Infrastructure'});await refresh();};
 
-  // Keyboard shortcut: '/' triggers search
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === '/' && !['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) {
-        e.preventDefault();
-        setIsSearchOpen(true);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+ const HomeResident=()=> <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-12"><section className="rounded-[28px] bg-gradient-to-br from-violet-700 via-violet-600 to-fuchsia-500 text-white p-6 sm:p-10 overflow-hidden relative"><div className="relative z-10 max-w-xl"><div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-[10px] font-bold uppercase tracking-wider"><Sparkles className="w-3.5 h-3.5"/> {language==='english'?'Society help, simplified':'Shikayat Box'}</div><h1 className="mt-5 text-3xl sm:text-5xl font-extrabold leading-tight">Hello, {currentUser.name.split(' ').slice(-1)[0]}.<br/>What needs attention?</h1><p className="mt-4 text-sm sm:text-base text-white/75 leading-relaxed">Report in your own words. AI understands the issue, checks similar complaints and helps the committee act.</p><div className="mt-7 flex flex-col sm:flex-row gap-3"><button onClick={()=>setTab('report')} className="px-5 py-3 rounded-xl bg-white text-violet-700 font-bold text-sm">Report an issue</button><button onClick={()=>setTab('issues')} className="px-5 py-3 rounded-xl bg-white/10 border border-white/20 font-bold text-sm">Track my issues</button></div></div><div className="absolute -right-16 -bottom-24 w-72 h-72 rounded-full bg-white/10"/></section><div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5"><div className="bg-white rounded-2xl border p-4"><div className="text-2xl font-extrabold">{residentComplaints.length}</div><div className="text-[11px] text-slate-500 mt-1">My reports</div></div><div className="bg-white rounded-2xl border p-4"><div className="text-2xl font-extrabold text-orange-600">{residentComplaints.filter(c=>c.status!=='RESOLVED').length}</div><div className="text-[11px] text-slate-500 mt-1">Open issues</div></div><div className="bg-white rounded-2xl border p-4"><div className="text-2xl font-extrabold text-emerald-600">{residentComplaints.filter(c=>c.resident_confirmation==='RESOLVED_CONFIRMED').length}</div><div className="text-[11px] text-slate-500 mt-1">Verified</div></div><div className="bg-white rounded-2xl border p-4"><div className="text-2xl font-extrabold text-violet-600">{unread}</div><div className="text-[11px] text-slate-500 mt-1">Updates</div></div></div><div className="mt-7 bg-white rounded-2xl border p-5"><h2 className="font-extrabold text-slate-900">How to use Shikayat Box</h2><div className="grid sm:grid-cols-5 gap-3 mt-4">{['Report','AI Understands','Track','Get Updates','Verify Resolution'].map((x,i)=><div key={x} className="flex sm:flex-col items-center sm:items-start gap-2 text-xs"><div className="w-8 h-8 rounded-full bg-violet-50 text-violet-700 flex items-center justify-center font-extrabold">{i+1}</div><span className="font-bold text-slate-700">{x}</span></div>)}</div></div></div>;
 
-  // Handlers
-  const handleUserChange = (newUser: UserAccount) => {
-    setCurrentUser(newUser);
-  };
+ const Notifications=()=> <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8"><div className="mb-6"><h1 className="text-2xl font-extrabold">Notifications</h1><p className="text-sm text-slate-500 mt-1">New complaints, SLA risk, notices and resolution updates.</p></div><div className="space-y-2">{notifications.filter(n=>!n.recipient_user_id||n.recipient_user_id===currentUser.id).map(n=><button key={n.id} onClick={()=>{markRead(n);if(n.complaint_id){const c=complaints.find(x=>x.id===n.complaint_id);if(c)setActiveComplaint(c);}}} className={`w-full text-left bg-white rounded-2xl border p-4 flex gap-3 ${n.read?'border-slate-200':'border-violet-200 bg-violet-50/30'}`}><div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center"><Bell className="w-4 h-4 text-violet-600"/></div><div className="flex-1"><div className="text-sm font-bold text-slate-900">{n.title}</div><div className="text-xs text-slate-600 mt-1">{n.message}</div><div className="text-[10px] text-slate-400 mt-2">{new Date(n.timestamp).toLocaleString()}</div></div>{!n.read&&<span className="w-2 h-2 rounded-full bg-violet-600 mt-2"/>}</button>)}{notifications.length===0&&<div className="bg-white border rounded-2xl p-10 text-center text-sm text-slate-500">You're all caught up.</div>}</div></div>;
+ const Profile=()=> <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8"><div className="bg-white border rounded-3xl p-6 sm:p-8"><div className="flex items-center gap-4"><div className="w-16 h-16 rounded-2xl bg-violet-100 text-violet-700 flex items-center justify-center text-xl font-extrabold">{currentUser.name.charAt(0)}</div><div><h1 className="text-xl font-extrabold">{currentUser.name}</h1><p className="text-sm text-slate-500">{currentUser.flat||'Society admin'} · {currentUser.wing||currentUser.role}</p></div></div><div className="grid sm:grid-cols-2 gap-3 mt-7"><div className="rounded-2xl bg-slate-50 p-4"><div className="text-[10px] uppercase font-bold text-slate-400">Phone</div><div className="font-bold text-sm mt-1">{currentUser.phone||'—'}</div></div><div className="rounded-2xl bg-slate-50 p-4"><div className="text-[10px] uppercase font-bold text-slate-400">Role</div><div className="font-bold text-sm mt-1 capitalize">{currentUser.role}</div></div></div><div className="mt-7"><div className="flex items-center gap-2 font-bold text-sm"><Globe2 className="w-4 h-4 text-violet-600"/> Language</div><div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">{LANGUAGES.map(l=><button key={l.id} onClick={()=>setLang(l.id)} className={`p-3 rounded-xl border text-left ${language===l.id?'border-violet-400 bg-violet-50 text-violet-800':'border-slate-200 hover:bg-slate-50'}`}><div className="text-xs font-bold">{l.native}</div><div className="text-[10px] text-slate-400 mt-0.5">{l.label}</div></button>)}</div></div><button onClick={logout} className="mt-7 w-full h-11 rounded-xl bg-slate-100 hover:bg-red-50 hover:text-red-700 text-sm font-bold flex items-center justify-center gap-2"><LogOut className="w-4 h-4"/> Sign out</button></div></div>;
 
-  const handleResetDemo = async () => {
-    await api.resetDemoData();
-    await refreshAllData();
-  };
-
-  const handleOpenComplaint = (c: Complaint) => {
-    setActiveComplaint(c);
-  };
-
-  const handleOpenTrackCase = (caseId: string) => {
-    setTrackedCaseId(caseId);
-    setCurrentTab('track');
-  };
-
-  const handleCreateMaintenanceTask = async (title: string) => {
-    const task = await api.createComplaint({
-      original_message: `Maintenance Task: ${title}`,
-      resident_name: 'Managing Committee',
-      resident_flat: 'Facility',
-      wing: 'B Wing',
-      location_detail: 'Pump / Infrastructure Shaft'
-    });
-    await refreshAllData();
-  };
-
-  // Find tracked complaint
-  const currentTrackedComplaint = complaints.find(
-    c => c.case_id.toLowerCase() === trackedCaseId.toLowerCase() || c.id === trackedCaseId
-  ) || complaints[0];
-
-  const defaultMaster = masterIssues[0] || {
-    id: 'master-water-b',
-    master_case_id: 'WC-M024',
-    title: 'Water supply disruption — B Wing',
-    category: 'Water' as any,
-    urgency: 'HIGH' as any,
-    impact_score: 78,
-    affected_flats_count: 23,
-    affected_locations: ['B Wing'],
-    child_complaint_ids: ['c-001', 'c-002', 'c-003', 'c-004', 'c-005', 'c-006', 'c-007'],
-    first_reported_at: new Date().toISOString(),
-    latest_report_at: new Date().toISOString(),
-    assigned_to: 'Rohan Sharma (Maintenance Lead)',
-    status: 'IN_PROGRESS' as any,
-    sla_deadline: new Date().toISOString(),
-    created_at: new Date().toISOString(),
-    recommended_action: 'Inspect B Wing riser line pressure, check booster motor breaker, and bleed air from upper floor manifolds.'
-  };
-
-  return (
-    <div className="min-h-screen bg-background text-[#0F172A] flex flex-col">
-      
-      {/* Sticky Global Navbar */}
-      <Navbar
-        currentTab={currentTab}
-        onTabChange={setCurrentTab}
-        currentUser={currentUser}
-        onUserChange={handleUserChange}
-        notifications={notifications}
-        onNotificationClick={(n) => {
-          if (n.complaint_id) {
-            const found = complaints.find(c => c.id === n.complaint_id || c.case_id === n.case_id);
-            if (found) setActiveComplaint(found);
-          }
-        }}
-        onMarkAllNotificationsRead={() => api.markAllNotificationsRead().then(refreshAllData)}
-        onResetDemo={handleResetDemo}
-        onOpenSearch={() => setIsSearchOpen(true)}
-        onOpenTwoMinuteTriage={() => setIsTwoMinuteOpen(true)}
-      />
-
-      {/* Main View Area */}
-      <main className="flex-1">
-        {currentTab === 'landing' && (
-          <LandingPage
-            onStartReport={() => setCurrentTab('report')}
-            onOpenDashboard={() => {
-              setCurrentUser(DEMO_USERS[1]); // switch to committee lead Rohan Sharma
-              setCurrentTab('command');
-            }}
-          />
-        )}
-
-        {currentTab === 'report' && (
-          <ResidentReport
-            currentUser={currentUser}
-            onSubmitSuccess={(caseId) => {
-              setTrackedCaseId(caseId);
-              refreshAllData();
-            }}
-            onViewCase={handleOpenTrackCase}
-          />
-        )}
-
-        {currentTab === 'track' && currentTrackedComplaint && (
-          <ResidentTracking
-            complaint={currentTrackedComplaint}
-            currentUser={currentUser}
-            onBack={() => setCurrentTab('command')}
-            onRefreshComplaint={refreshAllData}
-          />
-        )}
-
-        {currentTab === 'command' && (
-          <CommandCenter
-            complaints={complaints}
-            masterIssues={masterIssues}
-            currentUser={currentUser}
-            onOpenIssue={handleOpenComplaint}
-            onOpenMaster={(m) => setActiveMaster(m)}
-            onOpenTwoMinuteTriage={() => setIsTwoMinuteOpen(true)}
-            onOpenResolution={(c) => setResolvingComplaint(c)}
-            onRefresh={refreshAllData}
-          />
-        )}
-
-        {currentTab === 'galaxy' && (
-          <IssueGalaxy
-            masterIssue={defaultMaster}
-            allComplaints={complaints}
-            onSelectComplaint={handleOpenComplaint}
-            onSelectMaster={(m) => setActiveMaster(m)}
-          />
-        )}
-
-        {currentTab === 'heatmap' && (
-          <SocietyHeatmap
-            complaints={complaints}
-            onSelectComplaint={handleOpenComplaint}
-          />
-        )}
-
-        {currentTab === 'pulse' && (
-          <SocietyPulse
-            complaints={complaints}
-            onCreateMaintenanceTask={handleCreateMaintenanceTask}
-          />
-        )}
-      </main>
-
-      {/* GLOBAL MODALS */}
-
-      {/* Issue Intelligence Modal (3-Panel Deep Dive) */}
-      {activeComplaint && (
-        <IssueIntelligenceModal
-          complaint={activeComplaint}
-          currentUser={currentUser}
-          onClose={() => setActiveComplaint(null)}
-          onOpenResolution={(c) => {
-            setActiveComplaint(null);
-            setResolvingComplaint(c);
-          }}
-          onRefresh={refreshAllData}
-        />
-      )}
-
-      {/* 2-Minute Triage Fast Lane Modal */}
-      {isTwoMinuteOpen && (
-        <TwoMinuteTriage
-          complaints={complaints}
-          currentUser={currentUser}
-          onClose={() => setIsTwoMinuteOpen(false)}
-          onOpenIssue={handleOpenComplaint}
-          onAssignQuick={async (c) => {
-            await api.updateComplaint(c.id, {
-              assigned_to: 'Rohan Sharma (Maintenance Lead)',
-              status: 'IN_PROGRESS'
-            });
-            refreshAllData();
-          }}
-          onResolveQuick={(c) => {
-            setIsTwoMinuteOpen(false);
-            setResolvingComplaint(c);
-          }}
-          onMergeQuick={async (c) => {
-            setIsTwoMinuteOpen(false);
-            setActiveMaster(defaultMaster);
-          }}
-        />
-      )}
-
-      {/* Resolution & Evidence Modal */}
-      {resolvingComplaint && (
-        <ResolutionModal
-          complaint={resolvingComplaint}
-          currentUser={currentUser}
-          onClose={() => setResolvingComplaint(null)}
-          onSuccess={refreshAllData}
-        />
-      )}
-
-      {/* Master Issue Consolidated Modal */}
-      {activeMaster && (
-        <MasterIssueModal
-          masterIssue={activeMaster}
-          allComplaints={complaints}
-          onClose={() => setActiveMaster(null)}
-          onOpenComplaint={handleOpenComplaint}
-        />
-      )}
-
-      {/* Global Search Modal */}
-      <SearchModal
-        complaints={complaints}
-        isOpen={isSearchOpen}
-        onClose={() => setIsSearchOpen(false)}
-        onSelectComplaint={handleOpenComplaint}
-      />
-
-    </div>
-  );
+ let content:React.ReactNode;
+ if(!isAdmin){if(tab==='home')content=<HomeResident/>;else if(tab==='report')content=<ResidentReport currentUser={currentUser} onSubmitSuccess={id=>{setTrackedCaseId(id);refresh();}} onViewCase={id=>{setTrackedCaseId(id);setTab('issues')}}/>;else if(tab==='issues')content=tracked?<ResidentTracking complaint={tracked} currentUser={currentUser} onBack={()=>setTab('home')} onRefreshComplaint={refresh}/>:<div className="max-w-xl mx-auto px-4 py-20 text-center"><ClipboardListIcon/><h2 className="text-xl font-extrabold mt-3">No issues yet</h2><p className="text-sm text-slate-500 mt-1">Your submitted complaints will appear here.</p><button onClick={()=>setTab('report')} className="mt-5 px-5 py-2.5 bg-violet-600 text-white rounded-xl text-sm font-bold">Report an issue</button></div>;else if(tab==='notifications')content=<Notifications/>;else if(tab==='notices')content=<NoticeBoard user={currentUser} notices={notices} onCreate={createNotice}/>;else content=<Profile/>;}
+ else {if(tab==='dashboard')content=<CommandCenter complaints={complaints} masterIssues={masterIssues} currentUser={currentUser} onOpenIssue={setActiveComplaint} onOpenMaster={setActiveMaster} onOpenTwoMinuteTriage={()=>setIsTriageOpen(true)} onOpenResolution={setResolvingComplaint} onRefresh={refresh}/>;else if(tab==='issues')content=<CommandCenter complaints={complaints} masterIssues={masterIssues} currentUser={currentUser} onOpenIssue={setActiveComplaint} onOpenMaster={setActiveMaster} onOpenTwoMinuteTriage={()=>setIsTriageOpen(true)} onOpenResolution={setResolvingComplaint} onRefresh={refresh}/>;else if(tab==='insights')content=<SocietyPulse complaints={complaints} onCreateMaintenanceTask={createTask}/>;else if(tab==='galaxy')content={defaultMaster?<IssueGalaxy masterIssue={defaultMaster} allComplaints={complaints} onSelectComplaint={setActiveComplaint} onSelectMaster={setActiveMaster}/>:<div className="p-10 text-center">No master issues yet.</div>};else if(tab==='notices')content=<NoticeBoard user={currentUser} notices={notices} onCreate={createNotice}/>;else if(tab==='notifications')content=<Notifications/>;else content=<ReminderCenter user={currentUser} reminders={reminders} onCreate={createReminder} onUpdate={updateReminder}/>;}
+ return <div className="min-h-screen bg-[#F7F6F2] text-slate-900"><PortalNav user={currentUser} tab={tab} onTab={setTab} unread={unread} onLogout={logout} onSearch={()=>setIsSearchOpen(true)}/><main className="pb-20 lg:pb-0">{content}</main>
+  {activeComplaint&&<IssueIntelligenceModal complaint={activeComplaint} currentUser={currentUser} onClose={()=>setActiveComplaint(null)} onOpenResolution={c=>{setActiveComplaint(null);setResolvingComplaint(c)}} onRefresh={refresh}/>} 
+  {resolvingComplaint&&<ResolutionModal complaint={resolvingComplaint} currentUser={currentUser} onClose={()=>setResolvingComplaint(null)} onSuccess={refresh}/>} 
+  {activeMaster&&<MasterIssueModal masterIssue={activeMaster} allComplaints={complaints} onClose={()=>setActiveMaster(null)} onOpenComplaint={setActiveComplaint}/>} 
+  {isTriageOpen&&<TwoMinuteTriage complaints={complaints} currentUser={currentUser} onClose={()=>setIsTriageOpen(false)} onOpenIssue={setActiveComplaint} onAssignQuick={async c=>{await api.updateComplaint(c.id,{assigned_to:'Rohan Sharma (Maintenance Lead)',status:'IN_PROGRESS'});refresh()}} onResolveQuick={c=>{setIsTriageOpen(false);setResolvingComplaint(c)}} onMergeQuick={c=>{setIsTriageOpen(false);setActiveMaster(defaultMaster)}}/>}
+  <SearchModal complaints={complaints} isOpen={isSearchOpen} onClose={()=>setIsSearchOpen(false)} onSelectComplaint={setActiveComplaint}/>
+ </div>;
 }
-
+function ClipboardListIcon(){return <div className="w-14 h-14 rounded-2xl bg-violet-50 text-violet-600 mx-auto flex items-center justify-center"><CheckCircle2 className="w-7 h-7"/></div>}
 export default App;
