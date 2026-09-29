@@ -17,16 +17,17 @@ interface CommandCenterProps {
 const normalize = (value: string) => value.trim().toLowerCase().replace(/\s+/g, ' ');
 
 const go = (tab: string) => {
+  window.location.hash = `admin-${tab}`;
   window.dispatchEvent(new CustomEvent('sb-admin-nav', { detail: tab }));
 };
 
 export const CommandCenter: React.FC<CommandCenterProps> = ({ complaints, onOpenIssue, tab = 'dashboard' }) => {
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
 
-  // App.tsx is the single source of truth for the active admin page.
-  // Do not read document.body.dataset.page here: that legacy marker can lag
-  // behind React state during navigation and cause Issues to render Dashboard.
-  const isIssues = tab === 'issues';
+  // The URL hash is an explicit navigation contract between PortalNav and this view.
+  // It prevents any stale/legacy App state from swapping Dashboard and Issues.
+  const hash = typeof window !== 'undefined' ? window.location.hash : '';
+  const isIssues = hash === '#admin-issues' ? true : hash === '#admin-dashboard' ? false : tab === 'issues';
 
   const grouped = useMemo(() => {
     const map = new Map<string, { key: string; title: string; category: string; complaints: Complaint[] }>();
