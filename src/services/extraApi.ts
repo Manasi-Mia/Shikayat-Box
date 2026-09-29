@@ -1,5 +1,6 @@
 import { Notice, Reminder } from '../types';
-const BASE='http://localhost:3001/api';
+
+const BASE=(import.meta.env.VITE_API_URL || '/api').replace(/\/$/,'');
 const authHeaders=()=>{const token=localStorage.getItem('sb_token');return token?{Authorization:`Bearer ${token}`}:{}};
 async function request(path:string,options:RequestInit={}){const res=await fetch(`${BASE}${path}`,{...options,headers:{'Content-Type':'application/json',...authHeaders(),...(options.headers||{})}});if(!res.ok){const body=await res.json().catch(()=>({}));throw new Error(body.error||'Request failed');}return res.json();}
 export const extraApi={
