@@ -95,7 +95,7 @@ Login uses **phone number + password**.
 ### Admin
 Separate admin authentication uses **Admin ID / phone + password** with role-based access.
 
-### Demo accounts
+## Demo accounts
 The project includes configured demo resident and admin accounts for evaluation. The actual credentials should be kept out of the public repository and provided through the private deployment/demo instructions.
 
 - Demo resident: **Mrs. Sunita Sharma**, B Wing, B-402
