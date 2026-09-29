@@ -211,6 +211,19 @@ Minimal navigation, clean categorized issue lists and dedicated workspace boxes.
 - Minimal visual clutter
 
 ---
+## Demo accounts
+The project includes configured demo resident and admin accounts for evaluation. The actual credentials should be kept out of the public repository and provided through the private deployment/demo instructions.
+
+- Demo resident: **Mrs. Sunita Sharma**, B Wing, B-402
+**Resident demo**
+Phone: 9820144521
+Password: demo1234
+- Demo admin: **Priya Nair**, Society Secretary, Admin ID **ADMIN-001**
+**Details Admin demo**
+Admin ID: ADMIN-001
+Password: demo1234
+
+> Do not commit passwords, phone credentials, session secrets, MongoDB credentials or API keys to this public README or repository.
 
 ## Product Journey
 
