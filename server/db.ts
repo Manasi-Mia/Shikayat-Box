@@ -3,73 +3,29 @@ import path from 'path';
 import crypto from 'crypto';
 import { Complaint, MasterIssue, NotificationItem, UserAccount, Notice, Reminder } from '../src/types';
 import { INITIAL_COMPLAINTS, INITIAL_MASTER_ISSUES, INITIAL_NOTIFICATIONS, DEMO_USERS } from '../src/data/seedData';
-
-const DATA_DIR = path.join(process.cwd(), 'data');
-const DB_FILE = path.join(DATA_DIR, 'db.json');
-type StoredUser = UserAccount & { password_hash?: string; password_salt?: string };
-
-export interface DatabaseSchema {
-  users: StoredUser[];
-  complaints: Complaint[];
-  master_issues: MasterIssue[];
-  notifications: NotificationItem[];
-  notices: Notice[];
-  reminders: Reminder[];
-  metadata: { last_reset: string; version: string; society_name: string; total_flats: number };
-}
-
-export function hashPassword(password: string, salt = crypto.randomBytes(16).toString('hex')) {
-  const hash = crypto.scryptSync(password, salt, 64).toString('hex');
-  return { salt, hash };
-}
-export function verifyPassword(password: string, salt: string, expectedHash: string) {
-  const actual = crypto.scryptSync(password, salt, 64);
-  const expected = Buffer.from(expectedHash, 'hex');
-  return expected.length === actual.length && crypto.timingSafeEqual(actual, expected);
-}
-
-class RelationalDatabase {
-  private data: DatabaseSchema;
-  constructor() { this.data = this.loadOrSeed(); }
-  private seededUsers(): StoredUser[] {
-    return DEMO_USERS.map((u, i) => { const p = hashPassword('demo1234'); return {...u, phone: u.phone || (i===0?'+919820144521':i===1?'+919000000002':'+919000000001'), admin_id: u.role==='admin'?'ADMIN-001':undefined, password_hash:p.hash, password_salt:p.salt}; });
-  }
-  private loadOrSeed(): DatabaseSchema {
-    try {
-      if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-      if (fs.existsSync(DB_FILE)) {
-        const parsed = JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
-        if (Array.isArray(parsed.complaints) && Array.isArray(parsed.users)) {
-          parsed.notices = Array.isArray(parsed.notices) ? parsed.notices : [];
-          parsed.reminders = Array.isArray(parsed.reminders) ? parsed.reminders : [];
-          parsed.notifications = Array.isArray(parsed.notifications) ? parsed.notifications : [];
-          return parsed as DatabaseSchema;
-        }
-      }
-    } catch (err) { console.warn('[DB] Failed reading db.json, re-seeding...', err); }
-    const seeded: DatabaseSchema = { users:this.seededUsers(), complaints:INITIAL_COMPLAINTS, master_issues:INITIAL_MASTER_ISSUES, notifications:INITIAL_NOTIFICATIONS, notices:[], reminders:[], metadata:{last_reset:new Date().toISOString(),version:'1.1.0',society_name:'Greenwood Heights Society',total_flats:104} };
-    this.persist(seeded); return seeded;
-  }
-  private persist(schema?: DatabaseSchema) { try { if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR,{recursive:true}); fs.writeFileSync(DB_FILE,JSON.stringify(schema||this.data,null,2),'utf-8'); } catch(err){ console.error('[DB] Persist error:',err); } }
-  public resetToSeed(): DatabaseSchema { this.data={users:this.seededUsers(),complaints:INITIAL_COMPLAINTS,master_issues:INITIAL_MASTER_ISSUES,notifications:INITIAL_NOTIFICATIONS,notices:[],reminders:[],metadata:{last_reset:new Date().toISOString(),version:'1.1.0',society_name:'Greenwood Heights Society',total_flats:104}}; this.persist(); return this.data; }
-  public findUserByPhone(phone:string){ const normalized=phone.replace(/\D/g,''); return this.data.users.find(u=>(u.phone||'').replace(/\D/g,'')===normalized); }
-  public findAdmin(adminId?:string,phone?:string){ return this.data.users.find(u=>u.role==='admin' && ((adminId && u.admin_id?.toLowerCase()===adminId.toLowerCase()) || (phone && (u.phone||'').replace(/\D/g,'')===phone.replace(/\D/g,'')))); }
-  public verifyUser(user:StoredUser,password:string){ return !!(user.password_hash&&user.password_salt&&verifyPassword(password,user.password_salt,user.password_hash)); }
-  public createResident(input:{salutation:'Mr'|'Mrs'|'Ms';name:string;phone:string;wing:string;flat:string;password:string}):StoredUser { if(this.findUserByPhone(input.phone)) throw new Error('A resident with this phone number already exists'); const p=hashPassword(input.password); const user:StoredUser={id:`user-${Date.now()}`,name:`${input.salutation} ${input.name}`.trim(),email:`${input.phone.replace(/\D/g,'')}@resident.shikayatbox.local`,role:'resident',flat:input.flat,wing:input.wing,title:`Resident (${input.flat})`,phone:input.phone,salutation:input.salutation,language_preference:'english',password_hash:p.hash,password_salt:p.salt}; this.data.users.push(user); this.persist(); return user; }
-  public publicUser(user:StoredUser):UserAccount { const {password_hash,password_salt,...safe}=user; return safe; }
-  public getComplaints(){return this.data.complaints;}
-  public getComplaintById(id:string){return this.data.complaints.find(c=>c.id===id||c.case_id.toLowerCase()===id.toLowerCase());}
-  public createComplaint(complaint:Complaint){this.data.complaints.unshift(complaint); this.data.notifications.unshift({id:`n-${Date.now()}`,type:complaint.urgency==='CRITICAL'?'CRITICAL':'ASSIGNED',title:`${complaint.urgency} Issue Reported`,message:`${complaint.case_id} (${complaint.resident_flat}): ${complaint.normalized_summary.slice(0,60)}...`,complaint_id:complaint.id,case_id:complaint.case_id,timestamp:new Date().toISOString(),read:false,urgency:complaint.urgency}); this.persist(); return complaint;}
-  public updateComplaint(id:string,updates:Partial<Complaint>){const i=this.data.complaints.findIndex(c=>c.id===id||c.case_id.toLowerCase()===id.toLowerCase());if(i===-1)return null;const updated={...this.data.complaints[i],...updates,updated_at:new Date().toISOString()};this.data.complaints[i]=updated;this.persist();return updated;}
-  public getMasterIssues(){return this.data.master_issues;}
-  public createMasterIssue(master:MasterIssue){this.data.master_issues.unshift(master);for(const childId of master.child_complaint_ids){const i=this.data.complaints.findIndex(c=>c.id===childId);if(i!==-1){this.data.complaints[i].master_issue_id=master.id;this.data.complaints[i].status='IN_PROGRESS';this.data.complaints[i].timeline.push({id:`t-merged-${Date.now()}-${childId}`,timestamp:new Date().toISOString(),type:'MERGED',title:`Merged into Master Issue ${master.master_case_id}`,description:`Consolidated under: ${master.title}`,actor:'Committee Triage'});}}this.persist();return master;}
-  public getNotifications(){return this.data.notifications;}
-  public markNotificationRead(id:string){const n=this.data.notifications.find(x=>x.id===id);if(n){n.read=true;this.persist();}}
-  public markAllNotificationsRead(){this.data.notifications.forEach(n=>n.read=true);this.persist();}
-  public getNotices(){return this.data.notices;}
-  public createNotice(input:Omit<Notice,'id'|'created_at'>){const n:Notice={...input,id:`notice-${Date.now()}`,created_at:new Date().toISOString()};this.data.notices.unshift(n);this.persist();return n;}
-  public getReminders(){return this.data.reminders;}
-  public createReminder(input:Omit<Reminder,'id'|'created_at'>){const r:Reminder={...input,id:`rem-${Date.now()}`,created_at:new Date().toISOString()};this.data.reminders.unshift(r);this.persist();return r;}
-  public updateReminder(id:string,status:Reminder['status']){const r=this.data.reminders.find(x=>x.id===id);if(!r)return null;r.status=status;this.persist();return r;}
+import { sendCriticalWhatsApp } from './whatsapp';
+const DATA_DIR=path.join(process.cwd(),'data'); const DB_FILE=path.join(DATA_DIR,'db.json');
+type StoredUser=UserAccount & {password_hash?:string;password_salt?:string};
+export interface DatabaseSchema{users:StoredUser[];complaints:Complaint[];master_issues:MasterIssue[];notifications:NotificationItem[];notices:Notice[];reminders:Reminder[];metadata:{last_reset:string;version:string;society_name:string;total_flats:number};}
+export function hashPassword(password:string,salt=crypto.randomBytes(16).toString('hex')){return{salt,hash:crypto.scryptSync(password,salt,64).toString('hex')}}
+export function verifyPassword(password:string,salt:string,expectedHash:string){const actual=crypto.scryptSync(password,salt,64);const expected=Buffer.from(expectedHash,'hex');return expected.length===actual.length&&crypto.timingSafeEqual(actual,expected)}
+class RelationalDatabase{
+ private data:DatabaseSchema; constructor(){this.data=this.loadOrSeed()}
+ private seededUsers():StoredUser[]{return DEMO_USERS.map((u,i)=>{const p=hashPassword('demo1234');return{...u,phone:u.phone||(i===0?'+919820144521':i===1?'+919000000002':'+919000000001'),admin_id:u.role==='admin'?'ADMIN-001':undefined,password_hash:p.hash,password_salt:p.salt}})}
+ private loadOrSeed():DatabaseSchema{try{if(!fs.existsSync(DATA_DIR))fs.mkdirSync(DATA_DIR,{recursive:true});if(fs.existsSync(DB_FILE)){const parsed=JSON.parse(fs.readFileSync(DB_FILE,'utf-8'));if(Array.isArray(parsed.complaints)&&Array.isArray(parsed.users)){parsed.notices=Array.isArray(parsed.notices)?parsed.notices:[];parsed.reminders=Array.isArray(parsed.reminders)?parsed.reminders:[];parsed.notifications=Array.isArray(parsed.notifications)?parsed.notifications:[];return parsed as DatabaseSchema}}}catch(err){console.warn('[DB] Failed reading db.json, re-seeding...',err)}const seeded:DatabaseSchema={users:this.seededUsers(),complaints:INITIAL_COMPLAINTS,master_issues:INITIAL_MASTER_ISSUES,notifications:INITIAL_NOTIFICATIONS,notices:[],reminders:[],metadata:{last_reset:new Date().toISOString(),version:'1.1.0',society_name:'Greenwood Heights Society',total_flats:104}};this.persist(seeded);return seeded}
+ private persist(schema?:DatabaseSchema){try{if(!fs.existsSync(DATA_DIR))fs.mkdirSync(DATA_DIR,{recursive:true});fs.writeFileSync(DB_FILE,JSON.stringify(schema||this.data,null,2),'utf-8')}catch(err){console.error('[DB] Persist error:',err)}}
+ public resetToSeed(){this.data={users:this.seededUsers(),complaints:INITIAL_COMPLAINTS,master_issues:INITIAL_MASTER_ISSUES,notifications:INITIAL_NOTIFICATIONS,notices:[],reminders:[],metadata:{last_reset:new Date().toISOString(),version:'1.1.0',society_name:'Greenwood Heights Society',total_flats:104}};this.persist();return this.data}
+ public findUserByPhone(phone:string){const normalized=phone.replace(/\D/g,'');return this.data.users.find(u=>(u.phone||'').replace(/\D/g,'')===normalized)}
+ public findAdmin(adminId?:string,phone?:string){return this.data.users.find(u=>u.role==='admin'&&((adminId&&u.admin_id?.toLowerCase()===adminId.toLowerCase())||(phone&&(u.phone||'').replace(/\D/g,'')===phone.replace(/\D/g,''))))}
+ public verifyUser(user:StoredUser,password:string){return!!(user.password_hash&&user.password_salt&&verifyPassword(password,user.password_salt,user.password_hash))}
+ public createResident(input:{salutation:'Mr'|'Mrs'|'Ms';name:string;phone:string;wing:string;flat:string;password:string}):StoredUser{if(this.findUserByPhone(input.phone))throw new Error('A resident with this phone number already exists');const p=hashPassword(input.password);const user:StoredUser={id:`user-${Date.now()}`,name:`${input.salutation} ${input.name}`.trim(),email:`${input.phone.replace(/\D/g,'')}@resident.shikayatbox.local`,role:'resident',flat:input.flat,wing:input.wing,title:`Resident (${input.flat})`,phone:input.phone,salutation:input.salutation,language_preference:'english',password_hash:p.hash,password_salt:p.salt};this.data.users.push(user);this.persist();return user}
+ public publicUser(user:StoredUser){const{password_hash,password_salt,...safe}=user;return safe}
+ public getComplaints(){return this.data.complaints} public getComplaintById(id:string){return this.data.complaints.find(c=>c.id===id||c.case_id.toLowerCase()===id.toLowerCase())}
+ public createComplaint(complaint:Complaint){this.data.complaints.unshift(complaint);this.data.notifications.unshift({id:`n-${Date.now()}`,type:complaint.urgency==='CRITICAL'?'CRITICAL':'ASSIGNED',title:`${complaint.urgency} Issue Reported`,message:`${complaint.case_id} (${complaint.resident_flat}): ${complaint.normalized_summary.slice(0,60)}...`,complaint_id:complaint.id,case_id:complaint.case_id,timestamp:new Date().toISOString(),read:false,urgency:complaint.urgency});this.persist();if(complaint.urgency==='CRITICAL')void sendCriticalWhatsApp(`SHIKAYAT BOX — CRITICAL COMPLAINT\n${complaint.case_id} · ${complaint.resident_flat}\n${complaint.normalized_summary}\nUrgency: CRITICAL`);return complaint}
+ public updateComplaint(id:string,updates:Partial<Complaint>){const i=this.data.complaints.findIndex(c=>c.id===id||c.case_id.toLowerCase()===id.toLowerCase());if(i===-1)return null;const updated={...this.data.complaints[i],...updates,updated_at:new Date().toISOString()};this.data.complaints[i]=updated;this.persist();return updated}
+ public getMasterIssues(){return this.data.master_issues} public createMasterIssue(master:MasterIssue){this.data.master_issues.unshift(master);for(const childId of master.child_complaint_ids){const i=this.data.complaints.findIndex(c=>c.id===childId);if(i!==-1){this.data.complaints[i].master_issue_id=master.id;this.data.complaints[i].status='IN_PROGRESS';this.data.complaints[i].timeline.push({id:`t-merged-${Date.now()}-${childId}`,timestamp:new Date().toISOString(),type:'MERGED',title:`Merged into Master Issue ${master.master_case_id}`,description:`Consolidated under: ${master.title}`,actor:'Committee Triage'})}}this.persist();return master}
+ public getNotifications(){return this.data.notifications} public markNotificationRead(id:string){const n=this.data.notifications.find(x=>x.id===id);if(n){n.read=true;this.persist()}} public markAllNotificationsRead(){this.data.notifications.forEach(n=>n.read=true);this.persist()}
+ public getNotices(){return this.data.notices} public createNotice(input:Omit<Notice,'id'|'created_at'>){const n:Notice={...input,id:`notice-${Date.now()}`,created_at:new Date().toISOString()};this.data.notices.unshift(n);this.persist();return n}
+ public getReminders(){return this.data.reminders} public createReminder(input:Omit<Reminder,'id'|'created_at'>){const r:Reminder={...input,id:`rem-${Date.now()}`,created_at:new Date().toISOString()};this.data.reminders.unshift(r);this.persist();return r} public updateReminder(id:string,status:Reminder['status']){const r=this.data.reminders.find(x=>x.id===id);if(!r)return null;r.status=status;this.persist();return r}
 }
 export const db=new RelationalDatabase();
