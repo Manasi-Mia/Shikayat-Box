@@ -1,0 +1,35 @@
+import React from 'react';
+import { AlertCircle, Bell, CheckCircle2, ClipboardList, FilePlus2, HelpCircle, Languages, MessageCircle, Search, ShieldCheck, Sparkles, UserRound } from 'lucide-react';
+import { Language } from '../types';
+
+const manuals:Record<string,{title:string;subtitle:string;sections:{icon:React.ElementType;title:string;text:string}[]}>={
+ english:{title:'Shikayat Box App Manual',subtitle:'Everything you need to report, track and verify a society issue.',sections:[
+  {icon:FilePlus2,title:'1. Report an issue',text:'Open Report and describe the problem in your own words. You can explain what happened, where it happened and how urgent it feels. The system uses this information to create a complaint record.'},
+  {icon:Sparkles,title:'2. Let AI understand it',text:'AI helps identify the category, urgency, similar complaints and useful next actions. You do not need to know technical terms or select the perfect category yourself.'},
+  {icon:ClipboardList,title:'3. Track your complaint',text:'Open My Issues to follow the complaint journey. You can see the case status, assigned action, SLA information and the latest updates.'},
+  {icon:Bell,title:'4. Get updates',text:'Notifications keep you informed about important complaint activity, notices, assignments, SLA risks and resolution updates.'},
+  {icon:CheckCircle2,title:'5. Verify the resolution',text:'When an issue is marked resolved, check the result. Confirm Resolved if the problem is fixed, or choose Still Not Resolved to reopen the issue and notify the society team.'},
+  {icon:MessageCircle,title:'6. Society Chat',text:'Use Society Chat to communicate with neighbours. Keep messages respectful and use the complaint system for issues that require formal tracking.'},
+  {icon:Languages,title:'7. Change language',text:'Use the language selector to switch between English, Hindi, Marathi, Telugu, Gujarati, Punjabi, Bengali and Hinglish. Your choice is remembered on this device.'},
+  {icon:UserRound,title:'8. Profile & privacy',text:'Your profile shows your registered details and role. Residents should only access their own complaint information. Never share your password or login details.'},
+  {icon:Search,title:'9. Search',text:'Use Search to quickly locate a complaint when you need to review its details instead of manually browsing the issue list.'},
+  {icon:ShieldCheck,title:'10. When to report',text:'Report recurring water, lift, electricity, cleaning, parking, security, noise or other society problems. For immediate personal danger or emergencies, contact the appropriate emergency service first.'}
+ ]},
+ hindi:{title:'शिकायत बॉक्स ऐप मैनुअल',subtitle:'सोसाइटी की शिकायत दर्ज करने, ट्रैक करने और समाधान सत्यापित करने की पूरी जानकारी।',sections:[{icon:FilePlus2,title:'1. शिकायत दर्ज करें',text:'Report खोलें और समस्या अपने शब्दों में लिखें। क्या हुआ, कहाँ हुआ और कितनी जरूरी है, यह बताएं।'},{icon:Sparkles,title:'2. AI को समझने दें',text:'AI शिकायत की श्रेणी, urgency और मिलती-जुलती शिकायतों को समझने में मदद करता है।'},{icon:ClipboardList,title:'3. शिकायत ट्रैक करें',text:'My Issues में अपनी शिकायत का status, action और latest update देखें।'},{icon:Bell,title:'4. अपडेट पाएं',text:'Notifications से complaint updates, notices, SLA risk और resolution की जानकारी पाएं।'},{icon:CheckCircle2,title:'5. समाधान सत्यापित करें',text:'समस्या ठीक हो तो Resolved चुनें। ठीक न हो तो Still Not Resolved चुनकर शिकायत दोबारा खोलें।'},{icon:MessageCircle,title:'6. Society Chat',text:'पड़ोसियों से बातचीत के लिए Society Chat का उपयोग करें। औपचारिक शिकायतों को Report से दर्ज करें।'},{icon:Languages,title:'7. भाषा बदलें',text:'English, Hindi, Marathi, Telugu, Gujarati, Punjabi, Bengali और Hinglish में भाषा बदलें।'},{icon:UserRound,title:'8. Profile और privacy',text:'अपनी profile जानकारी देखें और password किसी के साथ साझा न करें।'},{icon:Search,title:'9. Search',text:'किसी complaint को जल्दी खोजने के लिए Search का उपयोग करें।'},{icon:ShieldCheck,title:'10. कब शिकायत करें',text:'पानी, लिफ्ट, बिजली, सफाई, पार्किंग, सुरक्षा, शोर या अन्य society समस्याओं की रिपोर्ट करें। आपात स्थिति में पहले उचित emergency service से संपर्क करें।'}]},
+ marathi:{title:'शिकायत बॉक्स अॅप मॅन्युअल',subtitle:'तक्रार नोंदवणे, ट्रॅक करणे आणि समाधान तपासण्यासाठी मार्गदर्शक.',sections:[]},
+ telugu:{title:'శికాయత్ బాక్స్ యాప్ మాన్యువల్',subtitle:'ఫిర్యాదు చేయడం, ట్రాక్ చేయడం మరియు పరిష్కారం ధృవీకరించడం కోసం మార్గదర్శకం.',sections:[]},
+ gujarati:{title:'શિકાયત બોક્સ એપ મેન્યુઅલ',subtitle:'ફરિયાદ નોંધવા, ટ્રેક કરવા અને ઉકેલ ચકાસવા માટે માર્ગદર્શિકા.',sections:[]},
+ punjabi:{title:'ਸ਼ਿਕਾਇਤ ਬਾਕਸ ਐਪ ਮੈਨੂਅਲ',subtitle:'ਸ਼ਿਕਾਇਤ ਦਰਜ ਕਰਨ, ਟ੍ਰੈਕ ਕਰਨ ਅਤੇ ਹੱਲ ਦੀ ਪੁਸ਼ਟੀ ਕਰਨ ਲਈ ਗਾਈਡ।',sections:[]},
+ bengali:{title:'শিকায়ত বক্স অ্যাপ ম্যানুয়াল',subtitle:'অভিযোগ করা, ট্র্যাক করা এবং সমাধান যাচাই করার গাইড।',sections:[]},
+ hinglish:{title:'Shikayat Box App Manual',subtitle:'Complaint report, track aur resolution verify karne ki simple guide.',sections:[]}
+};
+
+const englishSections=manuals.english.sections;
+export const AppManual:React.FC<{language:Language}>=({language})=>{
+ const base=manuals[language]||manuals.english; const sections=base.sections.length?base.sections:englishSections.map(s=>({...s,text:s.text.replace('Open Report','Report').replace('My Issues','My Issues')}));
+ return <div className="motion-page max-w-5xl mx-auto px-4 sm:px-6 py-7 sm:py-10">
+  <div className="rounded-[30px] bg-gradient-to-br from-rose-600 via-rose-500 to-pink-500 text-white p-6 sm:p-9 shadow-[0_22px_65px_rgba(225,29,72,.18)]"><div className="inline-flex items-center gap-2 rounded-full bg-white/15 border border-white/20 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider"><HelpCircle className="w-4 h-4"/> {language==='english'?'App Manual':'App Manual'}</div><h1 className="text-3xl sm:text-4xl font-black mt-4">{base.title}</h1><p className="text-sm sm:text-base text-white/80 mt-3 max-w-2xl">{base.subtitle}</p></div>
+  <div className="grid sm:grid-cols-2 gap-4 mt-6">{sections.map(({icon:Icon,title,text},i)=><article key={title} className="motion-rise card-lift rounded-[24px] bg-white border border-rose-100 p-5 sm:p-6 shadow-[0_12px_38px_rgba(244,63,94,.05)]"><div className="flex items-start gap-4"><div className="w-11 h-11 shrink-0 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center"><Icon className="w-5 h-5"/></div><div><div className="text-[10px] uppercase tracking-wider font-black text-rose-500">Step {i+1}</div><h2 className="font-black text-slate-900 mt-1">{title.replace(/^\d+\. /,'')}</h2><p className="text-sm leading-6 text-slate-600 mt-2">{text}</p></div></div></article>)}</div>
+  <div className="mt-6 rounded-[24px] border border-amber-100 bg-amber-50 p-5 flex gap-3"><AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5"/><div><div className="font-black text-amber-900 text-sm">Important</div><p className="text-xs sm:text-sm text-amber-800 mt-1 leading-5">Do not post passwords, personal financial information or sensitive private details in Society Chat. Use the complaint flow when an issue needs formal action and tracking.</p></div></div>
+ </div>;
+};
